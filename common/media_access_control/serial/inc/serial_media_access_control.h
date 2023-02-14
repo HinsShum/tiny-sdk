@@ -1,5 +1,5 @@
 /**
- * @file common\access_control\serial\inc\serial_media_access_control.h
+ * @file common\media_access_control\serial\inc\serial_media_access_control.h
  *
  * Copyright (C) 2022
  *

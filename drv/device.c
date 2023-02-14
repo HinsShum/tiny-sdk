@@ -1,5 +1,5 @@
 /**
- * @file driver/device.c
+ * @file drv\device.c
  *
  * Copyright (C) 2020
  *

@@ -1,5 +1,5 @@
 /**
- * @file driver/include/device.h
+ * @file drv\inc\device.h
  *
  * Copyright (C) 2020
  *

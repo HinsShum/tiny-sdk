@@ -1,5 +1,5 @@
 /**
- * @file driver\include\ds28exx.h
+ * @file drv\inc\ds28exx.h
  *
  * Copyright (C) 2022
  *

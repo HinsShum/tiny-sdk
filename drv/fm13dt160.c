@@ -1,5 +1,5 @@
 /**
- * @file driver\fm13dt160.c
+ * @file drv\fm13dt160.c
  *
  * Copyright (C) 2021
  *

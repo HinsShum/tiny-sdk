@@ -1,5 +1,5 @@
 /**
- * @file common\utils\simple_fifo\inc\simple_queue.h
+ * @file common\simple_fifo\inc\simple_queue.h
  *
  * Copyright (C) 2022
  *

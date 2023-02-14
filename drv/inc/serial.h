@@ -1,5 +1,5 @@
 /**
- * @file driver/include/serial.h
+ * @file drv\inc\serial.h
  *
  * Copyright (C) 2021
  *

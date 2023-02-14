@@ -1,5 +1,5 @@
 /**
- * @file common/utils/soft_timer/soft_timer.c
+ * @file common/soft_timer/soft_timer.c
  *
  * Copyright (C) 2022
  *

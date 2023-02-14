@@ -1,5 +1,5 @@
 /**
- * @file driver\pwmc.c
+ * @file drv\pwmc.c
  *
  * Copyright (C) 2022
  *

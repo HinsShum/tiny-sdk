@@ -1,5 +1,5 @@
 /**
- * @file driver\include\d100.h
+ * @file drv\inc\d100.h
  *
  * Copyright (C) 2021
  *

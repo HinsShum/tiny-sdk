@@ -1,5 +1,5 @@
 /**
- * @file common\access_control\radio\radio_media_access_control.c
+ * @file common\media_access_control\radio\radio_media_access_control.c
  *
  * Copyright (C) 2022
  *

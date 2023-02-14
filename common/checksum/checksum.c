@@ -1,5 +1,5 @@
 /**
- * @file APP/utils/checksum.c
+ * @file common/checksum/checksum.c
  *
  * Copyright (C) 2021
  *

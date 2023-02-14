@@ -1,5 +1,5 @@
 /**
- * @file driver/include/driver.h
+ * @file drv\inc\driver.h
  *
  * Copyright (C) 2021
  *

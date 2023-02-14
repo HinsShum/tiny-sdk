@@ -1,5 +1,5 @@
 /**
- * @file driver\include\at24cxx.h
+ * @file drv\inc\at24cxx.h
  *
  * Copyright (C) 2021
  *

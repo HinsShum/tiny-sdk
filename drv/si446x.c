@@ -1,5 +1,5 @@
 /**
- * @file driver\si446x.c
+ * @file drv\si446x.c
  *
  * Copyright (C) 2022
  *

@@ -1,5 +1,5 @@
 /**
- * @file common\access_control\serial\fullduplex_serial_media_access_contorl.c
+ * @file common\media_access_control\serial\fullduplex_serial_media_access_contorl.c
  *
  * Copyright (C) 2022
  *

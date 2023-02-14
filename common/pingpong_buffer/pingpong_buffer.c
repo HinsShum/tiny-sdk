@@ -1,5 +1,5 @@
 /**
- * @file common/utils/pingpong_buffer/pingpong_buffer.c
+ * @file common/pingpong_buffer/pingpong_buffer.c
  *
  * Copyright (C) 2021
  *

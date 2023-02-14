@@ -1,5 +1,5 @@
 /**
- * @file config/options.h
+ * @file inc\options.h
  *
  * Copyright (C) 2021
  *

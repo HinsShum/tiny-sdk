@@ -1,5 +1,5 @@
 /**
- * @file driver\ds28exx.c
+ * @file drv\ds28exx.c
  *
  * Copyright (C) 2022
  *

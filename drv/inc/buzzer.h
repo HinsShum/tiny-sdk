@@ -1,5 +1,5 @@
 /**
- * @file driver\include\buzzer.h
+ * @file drv\inc\buzzer.h
  *
  * Copyright (C) 2021
  *

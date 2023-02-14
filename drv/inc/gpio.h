@@ -1,5 +1,5 @@
 /**
- * @file APP/driver/include/gpio.h
+ * @file drv\inc\gpio.h
  *
  * Copyright (C) 2021
  *

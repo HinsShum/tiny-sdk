@@ -1,5 +1,5 @@
 /**
- * @file common\access_control\radio\inc\radio_transport_level.h
+ * @file common\media_access_control\radio\inc\radio_transport_level.h
  *
  * Copyright (C) 2022
  *

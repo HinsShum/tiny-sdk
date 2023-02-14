@@ -1,5 +1,5 @@
 /**
- * @file driver\include\i2c_bus.h
+ * @file drv\inc\i2c_bus.h
  *
  * Copyright (C) 2021
  *

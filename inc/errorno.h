@@ -1,5 +1,5 @@
 /**
- * @file /config/errorno.h
+ * @file inc\errorno.h
  *
  * Copyright (C) 2020
  *

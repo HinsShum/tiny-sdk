@@ -1,5 +1,5 @@
 /**
- * @file driver\include\timer.h
+ * @file drv\inc\timer.h
  *
  * Copyright (C) 2021
  *

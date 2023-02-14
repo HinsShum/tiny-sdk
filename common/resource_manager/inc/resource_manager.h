@@ -1,5 +1,5 @@
 /**
- * @file common/utils/resource_manager/inc/resource_manager.h
+ * @file common/resource_manager/inc/resource_manager.h
  *
  * Copyright (C) 2022
  *

@@ -1,5 +1,5 @@
 /**
- * @file APP/utils/utils.c
+ * @file common/utils/utils.c
  *
  * Copyright (C) 2021
  *

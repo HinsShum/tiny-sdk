@@ -1,5 +1,5 @@
 /**
- * @file config/misc.h
+ * @file inc\misc.h
  *
  * Copyright (C) 2021
  *

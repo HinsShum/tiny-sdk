@@ -1,5 +1,5 @@
 /**
- * @file common\utils\simple_fifo\simple_fifo.c
+ * @file common\simple_fifo\simple_fifo.c
  *
  * Copyright (C) 2022
  *

@@ -1,5 +1,5 @@
 /**
- * @file driver\rtc.c
+ * @file drv\rtc.c
  *
  * Copyright (C) 2021
  *

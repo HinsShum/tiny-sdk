@@ -1,5 +1,5 @@
 /**
- * @file driver\timer.c
+ * @file drv\timer.c
  *
  * Copyright (C) 2021
  *

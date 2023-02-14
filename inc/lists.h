@@ -1,5 +1,5 @@
 /**
- * @file config\lists.h
+ * @file inc\lists.h
  *
  * Copyright (C) 2021
  *

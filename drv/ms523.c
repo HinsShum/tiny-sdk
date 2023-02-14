@@ -1,5 +1,5 @@
 /**
- * @file driver\ms523.c
+ * @file drv\ms523.c
  *
  * Copyright (C) 2021
  *

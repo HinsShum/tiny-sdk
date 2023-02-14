@@ -1,5 +1,5 @@
 /**
- * @file driver\include\silkid.h
+ * @file drv\inc\silkid.h
  *
  * Copyright (C) 2021
  *

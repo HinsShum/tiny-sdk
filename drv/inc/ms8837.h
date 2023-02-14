@@ -1,5 +1,5 @@
 /**
- * @file driver\include\ms8837.h
+ * @file drv\inc\ms8837.h
  *
  * Copyright (C) 2021
  *

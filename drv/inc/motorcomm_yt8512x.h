@@ -1,5 +1,5 @@
 /**
- * @file driver\include\motorcomm_yt8512x.h
+ * @file drv\inc\motorcomm_yt8512x.h
  *
  * Copyright (C) 2021
  *

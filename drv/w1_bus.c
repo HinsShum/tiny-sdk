@@ -1,5 +1,5 @@
 /**
- * @file driver\w1_bus.c
+ * @file drv\w1_bus.c
  *
  * Copyright (C) 2022
  *

@@ -1,5 +1,5 @@
 /**
- * @file driver\d100.c
+ * @file drv\d100.c
  *
  * Copyright (C) 2021
  *

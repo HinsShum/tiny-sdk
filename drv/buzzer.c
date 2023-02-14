@@ -1,5 +1,5 @@
 /**
- * @file APP\driver\buzzer.c
+ * @file drv\buzzer.c
  *
  * Copyright (C) 2021
  *

@@ -1,5 +1,5 @@
 /**
- * @file common\access_control\serial\serial_transport_level.c
+ * @file common\media_access_control\serial\serial_transport_level.c
  *
  * Copyright (C) 2022
  *

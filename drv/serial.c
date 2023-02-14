@@ -1,5 +1,5 @@
 /**
- * @file driver/serial.c
+ * @file drv/serial.c
  *
  * Copyright (C) 2021
  *

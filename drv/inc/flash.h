@@ -1,5 +1,5 @@
 /**
- * @file driver/include/flash.h
+ * @file drv\inc\flash.h
  *
  * Copyright (C) 2021
  *

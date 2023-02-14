@@ -1,5 +1,5 @@
 /**
- * @file common/utils/parameters/inc/parameters.h
+ * @file common/parameters/inc/parameters.h
  *
  * Copyright (C) 2020
  *

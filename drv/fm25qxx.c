@@ -1,5 +1,5 @@
 /**
- * @file driver/fm25qxx.c
+ * @file drv\fm25qxx.c
  *
  * Copyright (C) 2021
  *

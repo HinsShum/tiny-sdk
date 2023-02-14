@@ -1,5 +1,5 @@
 /**
- * @file driver\seps525.c
+ * @file drv\seps525.c
  *
  * Copyright (C) 2021
  *

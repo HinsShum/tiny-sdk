@@ -1,5 +1,5 @@
 /**
- * @file driver/include/wdt.h
+ * @file drv\inc\wdt.h
  *
  * Copyright (C) 2021
  *

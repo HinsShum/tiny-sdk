@@ -1,5 +1,5 @@
 /**
- * @file driver\include\infrared.h
+ * @file drv\inc\infrared.h
  *
  * Copyright (C) 2021
  *

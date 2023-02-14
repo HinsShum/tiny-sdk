@@ -1,5 +1,5 @@
 /**
- * @file common\utils\simple_fifo\simple_message_buffer.c
+ * @file common\simple_fifo\simple_message_buffer.c
  *
  * Copyright (C) 2022
  *
