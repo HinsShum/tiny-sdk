@@ -40,10 +40,10 @@ extern "C"
 
 /*---------- macro ----------*/
 #ifndef xlog_error
-#define xlog_error(x, y...)
+#define xlog_error(x, ...)
 #endif
 #ifndef xlog_cont
-#define xlog_cont(x, y...)
+#define xlog_cont(x, ...)
 #endif
 
 /* assert definition

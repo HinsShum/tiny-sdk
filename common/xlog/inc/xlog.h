@@ -50,15 +50,15 @@ extern "C"
 
 /* xlog API functions definition
  */
-#define xlog_error(x, y...)                 xlog(LOG_ERROR x, ##y)
-#define xlog_warn(x, y...)                  xlog(LOG_WARN x, ##y)
-#define xlog_message(x, y...)               xlog(LOG_MESSAGE x, ##y)
-#define xlog_info(x, y...)                  xlog(LOG_INFO x, ##y)
-#define xlog_cont(x, y...)                  xlog(LOG_CONT x, ##y)
-#define xlog_tag_error(tag, x, y...)        xlog(LOG_ERROR "(" tag ")" x, ##y)
-#define xlog_tag_warn(tag, x, y...)         xlog(LOG_WARN "(" tag ")" x, ##y)
-#define xlog_tag_message(tag, x, y...)      xlog(LOG_MESSAGE "(" tag ")" x, ##y)
-#define xlog_tag_info(tag, x, y...)         xlog(LOG_INFO "(" tag ")" x, ##y)
+#define xlog_error(x, ...)                  xlog(LOG_ERROR x, ##__VA_ARGS__)
+#define xlog_warn(x, ...)                   xlog(LOG_WARN x, ##__VA_ARGS__)
+#define xlog_message(x, ...)                xlog(LOG_MESSAGE x, ##__VA_ARGS__)
+#define xlog_info(x, ...)                   xlog(LOG_INFO x, ##__VA_ARGS__)
+#define xlog_cont(x, ...)                   xlog(LOG_CONT x, ##__VA_ARGS__)
+#define xlog_tag_error(tag, x, ...)         xlog(LOG_ERROR "(" tag ")" x, ##__VA_ARGS__)
+#define xlog_tag_warn(tag, x, ...)          xlog(LOG_WARN "(" tag ")" x, ##__VA_ARGS__)
+#define xlog_tag_message(tag, x, ...)       xlog(LOG_MESSAGE "(" tag ")" x, ##__VA_ARGS__)
+#define xlog_tag_info(tag, x, ...)          xlog(LOG_INFO "(" tag ")" x, ##__VA_ARGS__)
 
 /*---------- type define ----------*/
 typedef struct {
@@ -86,7 +86,7 @@ typedef void (*xlog_print_func_t)(const char *str, uint32_t length);
 #ifdef CONFIG_USE_XLOG
 extern uint32_t __attribute__((format(printf, 1, 0))) xlog(const char *fmt, ...);
 #else
-#define xlog(x, y...)
+#define xlog(x, ...)
 #endif
 
 /**
