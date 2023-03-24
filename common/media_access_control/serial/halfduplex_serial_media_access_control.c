@@ -370,9 +370,12 @@ void halfduplex_serial_mac_timer_expired(serial_mac_t self)
     pingpong_buffer_set_write_done(&self->pingpong);
     pingpong_buffer_get_read_buf(&self->pingpong, (void **)&self->processer.preceiver);
     pingpong_buffer_get_write_buf(&self->pingpong, (void **)&self->preceiver);
+    self->preceiver->state = RECV_IDLE;
     /* post received event if no error occured during receiving bytes */
     if(self->processer.preceiver->state == RECV_BUSY) {
         self->ops.event_post(SERIAL_MAC_EVT_RECEIVED);
+    } else {
+        pingpong_buffer_set_read_done(&self->pingpong);
     }
     /* recover bus */
     self->processer.preceiver->state = RECV_IDLE;
