@@ -69,6 +69,7 @@ serial_mac_t serial_mac_new(serial_mac_type_t type, uint32_t baudrate, uint32_t 
         }
         memset(self, 0, sizeof(*self));
         if(type == SERIAL_MAC_TYPE_HALFDUPLEX) {
+#ifndef CONFIG_UNUSE_HALFDUPLEX_SERIAL_MAC
             self->ops.new = halfduplex_serial_media_access_controller_new;
             self->ops.delete = halfduplex_serial_media_access_controller_delete;
             self->ops.set_transmitter = halfduplex_serial_mac_set_transmitter;
@@ -78,7 +79,9 @@ serial_mac_t serial_mac_new(serial_mac_type_t type, uint32_t baudrate, uint32_t 
             self->ops.timer_expired = halfduplex_serial_mac_timer_expired;
             self->ops.poll = halfduplex_serial_mac_poll;
             self->ops.called_per_tick = halfduplex_serial_mac_called_per_tick;
+#endif
         } else {
+#ifndef CONFIG_UNUSE_FULLDUPLEX_SERIAL_MAC
             self->ops.new = fullduplex_serial_media_access_controller_new;
             self->ops.delete = fullduplex_serial_media_access_control_delete;
             self->ops.set_transmitter = fullduplex_serial_mac_set_transmitter;
@@ -88,6 +91,7 @@ serial_mac_t serial_mac_new(serial_mac_type_t type, uint32_t baudrate, uint32_t 
             self->ops.timer_expired = fullduplex_serial_mac_timer_expired;
             self->ops.poll = fullduplex_serial_mac_poll;
             self->ops.called_per_tick = fullduplex_serial_mac_called_per_tick;
+#endif
         }
         self->handle = self->ops.new(baudrate, recv_capacity, trans_capacity, ops);
         if(!self->handle) {

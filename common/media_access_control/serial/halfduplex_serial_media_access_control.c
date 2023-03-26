@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef CONFIG_UNUSE_HALFDUPLEX_SERIAL_MAC
 /*---------- macro ----------*/
 #define DISF                                        __ms2ticks(50)
 
@@ -467,3 +468,4 @@ void halfduplex_serial_mac_called_per_tick(serial_mac_t self)
         }
     } while(0);
 }
+#endif

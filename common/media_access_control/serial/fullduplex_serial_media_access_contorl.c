@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef CONFIG_UNUSE_FULLDUPLEX_SERIAL_MAC
 /*---------- macro ----------*/
 /*---------- type define ----------*/
 typedef enum {
@@ -417,3 +418,4 @@ void fullduplex_serial_mac_called_per_tick(serial_mac_t self)
         self->transmitter.state = TRANS_READY;
     } while(0);
 }
+#endif
