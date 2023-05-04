@@ -373,11 +373,11 @@ void fullduplex_serial_mac_poll(serial_mac_t self)
             case SERIAL_MAC_EVT_TRANSMITTER_READY:
                 self->transmitter.state = TRANS_BUSY;
                 self->ops.serial_post(self->transmitter.pbuf, self->transmitter.pos);
+                self->transmitter.state = TRANS_WAIT_ACK;
+                self->disf = self->disf_default;
 #ifdef CONFIG_SERIAL_MAC_DEBUG
                 PRINT_BUFFER_CONTENT(COLOR_YELLOW, "[Serial]W", self->transmitter.pbuf, self->transmitter.pos);
 #endif
-                self->transmitter.state = TRANS_WAIT_ACK;
-                self->disf = self->disf_default;
                 break;
             default:
                 break;
