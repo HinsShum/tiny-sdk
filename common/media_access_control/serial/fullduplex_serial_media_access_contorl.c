@@ -116,10 +116,10 @@ static serial_mac_expection_t _port_level_init(uint32_t baudrate, serial_mac_ops
     uint32_t t35_50us = 0;
 
     do {
-        if(!ops->halfduplex.serial_init(baudrate)) {
+        if(!ops->fullduplex.serial_init(baudrate)) {
             break;
         }
-        if(!ops->halfduplex.event_init()) {
+        if(!ops->fullduplex.event_init()) {
             break;
         }
         if(baudrate > 19200) {
@@ -136,7 +136,7 @@ static serial_mac_expection_t _port_level_init(uint32_t baudrate, serial_mac_ops
              */
             t35_50us = (7UL * 220000UL) / (2UL * baudrate);
         }
-        if(!ops->halfduplex.timer_init(t35_50us)) {
+        if(!ops->fullduplex.timer_init(t35_50us)) {
             break;
         }
         err = SERIAL_MAC_EX_NONE;
