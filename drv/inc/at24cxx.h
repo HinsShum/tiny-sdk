@@ -36,7 +36,19 @@ extern "C"
 #include "i2c_bus.h"
 
 /*---------- macro ----------*/
+#define IOCTL_AT24CXX_SET_EVENT_CALLBACK                    IOCTL_FLASH_INHERIT_START
+
 /*---------- type define ----------*/
+struct at24cxx_event {
+    enum {
+        AT24CXX_EVT_NONE,
+        AT24CXX_EVT_WRITE_FAILURE,
+        AT24CXX_EVT_READ_FAILURE,
+        AT24CXX_EVT_ERASE_FAILURE,
+    } type;
+    uint32_t offset;
+};
+
 typedef struct {
     bool (*init)(void);
     void (*deinit)(void);
@@ -45,13 +57,15 @@ typedef struct {
     bool (*write_protect_get)(void);
     void (*write_cycle_time)(void);
     void (*cb)(void);
+    void (*on_event)(struct at24cxx_event *evt);
 } at24cxx_ops_t;
 
 typedef struct {
-    uint8_t address;
     char *bus_name;
     void *bus;
+    uint8_t address;
     uint8_t mem_addr_counts;
+    uint8_t *blk_buf;
     flash_info_t info;
     at24cxx_ops_t ops;
 } at24cxx_describe_t;

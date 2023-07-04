@@ -47,6 +47,7 @@ static int32_t _ioctl_erase_chip(at24cxx_describe_t *pdesc, void *args);
 static int32_t _ioctl_check_addr_is_block_start(at24cxx_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_info(at24cxx_describe_t *pdesc, void *args);
 static int32_t _ioctl_set_callback(at24cxx_describe_t *pdesc, void *args);
+static int32_t _ioctl_set_event_callback(at24cxx_describe_t *pdesc, void *args);
 static int32_t _ioctl_power_on(at24cxx_describe_t *pdesc, void *args);
 static int32_t _ioctl_power_off(at24cxx_describe_t *pdesc, void *args);
 
@@ -67,7 +68,8 @@ static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_FLASH_ERASE_CHIP, _ioctl_erase_chip},
     {IOCTL_FLASH_CHECK_ADDR_IS_BLOCK_START, _ioctl_check_addr_is_block_start},
     {IOCTL_FLASH_GET_INFO, _ioctl_get_info},
-    {IOCTL_FLASH_SET_CALLBACK, _ioctl_set_callback}
+    {IOCTL_FLASH_SET_CALLBACK, _ioctl_set_callback},
+    {IOCTL_AT24CXX_SET_EVENT_CALLBACK, _ioctl_set_event_callback},
 };
 
 /*---------- function ----------*/
@@ -82,6 +84,10 @@ static int32_t at24cxx_open(driver_t **pdrv)
     do {
         if(!pdesc) {
             xlog_tag_error(TAG, "driver has no describe field\n");
+            break;
+        }
+        if(!pdesc->blk_buf) {
+            xlog_tag_error(TAG, "Block buffer is NULL\n");
             break;
         }
         retval = CY_EOK;
@@ -131,6 +137,87 @@ static void inline _do_callback(at24cxx_describe_t *pdesc)
     }
 }
 
+static void inline _do_on_event(at24cxx_describe_t *pdesc, struct at24cxx_event *evt)
+{
+    if(pdesc->ops.on_event && evt->type != AT24CXX_EVT_NONE) {
+        pdesc->ops.on_event(evt);
+    }
+}
+
+static void inline _do_write_cycle_time(at24cxx_describe_t *pdesc)
+{
+    if(pdesc->ops.write_cycle_time) {
+        pdesc->ops.write_cycle_time();
+    }
+}
+
+static void inline _do_write_protect_set(at24cxx_describe_t *pdesc, bool protect)
+{
+    if(pdesc->ops.write_protect_set) {
+        pdesc->ops.write_protect_set(protect);
+    }
+}
+
+static bool _read_back_and_check_write_bytes(at24cxx_describe_t *pdesc, i2c_bus_msg_t *pw)
+{
+    bool err = false;
+    int32_t result = CY_ERROR;
+    i2c_bus_msg_t r = {
+        .type = I2C_BUS_TYPE_RANDOM_READ,
+        .dev_addr = pw->dev_addr,
+        .mem_addr = pw->mem_addr,
+        .mem_addr_counts = pw->mem_addr_counts,
+        .buf = pdesc->blk_buf,
+        .len = pw->len
+    };
+
+    _do_write_cycle_time(pdesc);
+    /* read back */
+    device_ioctl(pdesc->bus, IOCTL_I2C_BUS_LOCK, NULL);
+    result = device_read(pdesc->bus, &r, 0, sizeof(r));
+    device_ioctl(pdesc->bus, IOCTL_I2C_BUS_UNLOCK, NULL);
+    if(result == CY_EOK) {
+        /* check bytes */
+        if(memcmp(r.buf, pw->buf, r.len) == 0) {
+            err = true;
+        }
+    }
+
+    return err;
+}
+
+static bool _read_back_and_check_erase_bytes(at24cxx_describe_t *pdesc, i2c_bus_msg_t *pw)
+{
+    bool err = false;
+    int32_t result = CY_ERROR;
+    i2c_bus_msg_t r = {
+        .type = I2C_BUS_TYPE_RANDOM_READ,
+        .dev_addr = pw->dev_addr,
+        .mem_addr = pw->mem_addr,
+        .mem_addr_counts = pw->mem_addr_counts,
+        .buf = pdesc->blk_buf,
+        .len = pw->len
+    };
+
+    _do_write_cycle_time(pdesc);
+    /* read back */
+    device_ioctl(pdesc->bus, IOCTL_I2C_BUS_LOCK, NULL);
+    result = device_read(pdesc->bus, &r, 0, sizeof(r));
+    device_ioctl(pdesc->bus, IOCTL_I2C_BUS_UNLOCK, NULL);
+    if(result == CY_EOK) {
+        /* check bytes */
+        err = true;
+        for(uint32_t i = 0; i < r.len; ++i) {
+            if(r.buf[i] != 0xFF) {
+                err = false;
+                break;
+            }
+        }
+    }
+
+    return err;
+}
+
 static int32_t at24cxx_write(driver_t **pdrv, void *buf, uint32_t offset, uint32_t length)
 {
     i2c_bus_msg_t msg = {0};
@@ -139,6 +226,9 @@ static int32_t at24cxx_write(driver_t **pdrv, void *buf, uint32_t offset, uint32
     int32_t result = CY_EOK;
     uint8_t memory_addr[2] = {0};
     uint32_t address = 0;
+    struct at24cxx_event evt = {
+        .type = AT24CXX_EVT_NONE
+    };
 
     assert(pdrv);
     assert(buf);
@@ -156,9 +246,7 @@ static int32_t at24cxx_write(driver_t **pdrv, void *buf, uint32_t offset, uint32
         msg.dev_addr = pdesc->address;
         msg.mem_addr = memory_addr;
         msg.mem_addr_counts = pdesc->mem_addr_counts;
-        if(pdesc->ops.write_protect_set) {
-            pdesc->ops.write_protect_set(false);
-        }
+        _do_write_protect_set(pdesc, false);
         address = pdesc->info.start + offset;
         if(address >= pdesc->info.end) {
             xlog_tag_error(TAG, "write address is overflow\n");
@@ -186,19 +274,24 @@ static int32_t at24cxx_write(driver_t **pdrv, void *buf, uint32_t offset, uint32
             device_ioctl(pdesc->bus, IOCTL_I2C_BUS_UNLOCK, NULL);
             _do_callback(pdesc);
             if(CY_EOK != result) {
+                evt.type = AT24CXX_EVT_WRITE_FAILURE;
+                evt.offset = address - pdesc->info.start;
                 xlog_tag_error(TAG, "write failed\n");
+                break;
+            }
+            /* read back and check bytes*/
+            if(_read_back_and_check_write_bytes(pdesc, &msg) != true) {
+                evt.type = AT24CXX_EVT_WRITE_FAILURE;
+                evt.offset = address - pdesc->info.start;
+                xlog_tag_error(TAG, "check bytes error, write failure\n");
                 break;
             }
             actual_len += msg.len;
             address += msg.len;
-            if(pdesc->ops.write_cycle_time) {
-                pdesc->ops.write_cycle_time();
-            }
         }
     } while(0);
-    if(pdesc->ops.write_protect_set) {
-        pdesc->ops.write_protect_set(true);
-    }
+    _do_write_protect_set(pdesc, true);
+    _do_on_event(pdesc, &evt);
 
     return (int32_t)actual_len;
 }
@@ -210,6 +303,10 @@ static int32_t at24cxx_read(driver_t **pdrv, void *buf, uint32_t offset, uint32_
     i2c_bus_msg_t msg = {0};
     uint8_t memory_addr[2] = {0};
     uint32_t address = 0;
+    struct at24cxx_event evt = {
+        .type = AT24CXX_EVT_NONE,
+        .offset = offset
+    };
 
     assert(pdrv);
     assert(buf);
@@ -221,6 +318,10 @@ static int32_t at24cxx_read(driver_t **pdrv, void *buf, uint32_t offset, uint32_
         }
         if(!pdesc->bus) {
             xlog_tag_error(TAG, "not bind to i2c bus\n");
+            break;
+        }
+        if(!length) {
+            xlog_tag_error(TAG, "read length is zero\n");
             break;
         }
         msg.type = I2C_BUS_TYPE_RANDOM_READ;
@@ -245,12 +346,15 @@ static int32_t at24cxx_read(driver_t **pdrv, void *buf, uint32_t offset, uint32_
         msg.buf = buf;
         msg.len = length;
         _do_callback(pdesc);
+        evt.type = AT24CXX_EVT_READ_FAILURE;
         device_ioctl(pdesc->bus, IOCTL_I2C_BUS_LOCK, NULL);
         if(CY_EOK == device_read(pdesc->bus, &msg, 0, sizeof(msg))) {
+            evt.type = AT24CXX_EVT_NONE;
             actual_len = length;
         }
         device_ioctl(pdesc->bus, IOCTL_I2C_BUS_UNLOCK, NULL);
     } while(0);
+    _do_on_event(pdesc, &evt);
 
     return (int32_t)actual_len;
 }
@@ -260,16 +364,18 @@ static int32_t _ioctl_erase_block(at24cxx_describe_t *pdesc, void *args)
     int32_t retval = CY_E_WRONG_ARGS;
     uint32_t *poffset = (uint32_t *)args;
     uint32_t addr = 0;
-    uint8_t buf[128] = {0};
     i2c_bus_msg_t msg = {0};
     uint8_t memory_addr[2] = {0};
+    struct at24cxx_event evt = {
+        .type = AT24CXX_EVT_NONE
+    };
 
     do {
         if(!args) {
             xlog_tag_error(TAG, "Args is NULL, erase block function must specify the erase address\n");
             break;
         }
-        memset(buf, 0xFF, sizeof(buf));
+        memset(pdesc->blk_buf, 0xFF, pdesc->info.block_size);
         addr = ((*poffset + pdesc->info.start) / pdesc->info.block_size) * pdesc->info.block_size;
         if(pdesc->mem_addr_counts == 1) {
             memory_addr[0] = addr & 0xFF;
@@ -281,28 +387,32 @@ static int32_t _ioctl_erase_block(at24cxx_describe_t *pdesc, void *args)
         msg.dev_addr = pdesc->address;
         msg.mem_addr = memory_addr;
         msg.mem_addr_counts = pdesc->mem_addr_counts;
-        msg.buf = buf;
+        msg.buf = pdesc->blk_buf;
         msg.len = pdesc->info.block_size;
-        if(pdesc->ops.write_protect_set) {
-            pdesc->ops.write_protect_set(false);
-        }
+        _do_write_protect_set(pdesc, false);
         device_ioctl(pdesc->bus, IOCTL_I2C_BUS_LOCK, NULL);
         retval = device_write(pdesc->bus, &msg, 0, sizeof(msg));
         device_ioctl(pdesc->bus, IOCTL_I2C_BUS_UNLOCK, NULL);
         _do_callback(pdesc);
         if(CY_EOK != retval) {
-            xlog_tag_error(TAG, "erase block failed\n");
+            evt.type = AT24CXX_EVT_ERASE_FAILURE;
+            evt.offset = addr - pdesc->info.start;
+            xlog_tag_error(TAG, "erase address(%08X) failed\n", addr);
+            break;
+        }
+        /* read back and check bytes */
+        if(_read_back_and_check_erase_bytes(pdesc, &msg) != true) {
+            evt.type = AT24CXX_EVT_ERASE_FAILURE;
+            evt.offset = addr - pdesc->info.start;
+            retval = CY_ERROR;
+            xlog_tag_error(TAG, "check bytes error, erase address(%08X) failure\n", addr);
             break;
         }
         retval = (int32_t)pdesc->info.block_size;
         xlog_tag_info(TAG, "Erase address(%08X) block size: %dbytes\n", addr, pdesc->info.block_size);
-        if(pdesc->ops.write_cycle_time) {
-            pdesc->ops.write_cycle_time();
-        }
     } while(0);
-    if(pdesc->ops.write_protect_set) {
-        pdesc->ops.write_protect_set(true);
-    }
+    _do_write_protect_set(pdesc, true);
+    _do_on_event(pdesc, &evt);
 
     return retval;
 }
@@ -314,10 +424,11 @@ static int32_t _ioctl_erase_chip(at24cxx_describe_t *pdesc, void *args)
     uint8_t buf[128] = {0};
     i2c_bus_msg_t msg = {0};
     uint8_t memory_addr[2] = {0};
+    struct at24cxx_event evt = {
+        .type = AT24CXX_EVT_NONE
+    };
 
-    if(pdesc->ops.write_protect_set) {
-        pdesc->ops.write_protect_set(false);
-    }
+    _do_write_protect_set(pdesc, false);
     memset(buf, 0xFF, ARRAY_SIZE(buf));
     while(addr < pdesc->info.end) {
         if(pdesc->mem_addr_counts == 1) {
@@ -337,19 +448,25 @@ static int32_t _ioctl_erase_chip(at24cxx_describe_t *pdesc, void *args)
         device_ioctl(pdesc->bus, IOCTL_I2C_BUS_UNLOCK, NULL);
         _do_callback(pdesc);
         if(CY_EOK != retval) {
+            evt.type = AT24CXX_EVT_ERASE_FAILURE;
+            evt.offset = addr - pdesc->info.start;
             xlog_tag_error(TAG, "erase chip failed, %08X address occur error\n", addr);
+            break;
+        }
+        /* read back and check bytes */
+        if(_read_back_and_check_erase_bytes(pdesc, &msg) != true) {
+            evt.type = AT24CXX_EVT_ERASE_FAILURE;
+            evt.offset = addr - pdesc->info.start;
+            retval = CY_ERROR;
+            xlog_tag_error(TAG, "check bytes error, erase address(%08X) failure\n", addr);
             break;
         }
         xlog_tag_info(TAG, "Erase chip, current address: %08X\n", addr);
         addr += msg.len;
-        if(pdesc->ops.write_cycle_time) {
-            pdesc->ops.write_cycle_time();
-        }
     }
-    if(pdesc->ops.write_protect_set) {
-        pdesc->ops.write_protect_set(true);
-    }
-    if(addr >= pdesc->info.end) {
+    _do_write_protect_set(pdesc, true);
+    _do_on_event(pdesc, &evt);
+    if(retval == CY_EOK) {
         retval = (int32_t)(pdesc->info.end - pdesc->info.start);
     }
 
@@ -406,6 +523,23 @@ static int32_t _ioctl_set_callback(at24cxx_describe_t *pdesc, void *args)
             break;
         }
         pdesc->ops.cb = cb;
+        retval = CY_EOK;
+    } while(0);
+
+    return retval;
+}
+
+static int32_t _ioctl_set_event_callback(at24cxx_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_E_WRONG_ARGS;
+    void (*on_event)(struct at24cxx_event *) = (void (*)(struct at24cxx_event *))args;
+
+    do {
+        if(!args) {
+            xlog_tag_error(TAG, "Args is NULL, no event callback to bind the at24cxx device\n");
+            break;
+        }
+        pdesc->ops.on_event = on_event;
         retval = CY_EOK;
     } while(0);
 
