@@ -40,6 +40,8 @@ static int32_t __ioctl_get(gpio_describe_t *pdesc, void *args);
 static int32_t __ioctl_set(gpio_describe_t *pdesc, void *args);
 static int32_t __ioctl_toggle(gpio_describe_t *pdesc, void *args);
 static int32_t __ioctl_set_irq(gpio_describe_t *pdesc, void *args);
+static int32_t __ioctl_irq_enable(gpio_describe_t *pdesc, void *args);
+static int32_t __ioctl_irq_disable(gpio_describe_t *pdesc, void *args);
 
 /*---------- function prototype ----------*/
 /*---------- type define ----------*/
@@ -56,7 +58,9 @@ static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_GPIO_GET, __ioctl_get},
     {IOCTL_GPIO_SET, __ioctl_set},
     {IOCTL_GPIO_TOGGLE, __ioctl_toggle},
-    {IOCTL_GPIO_SET_IRQ_HANDLER, __ioctl_set_irq}
+    {IOCTL_GPIO_SET_IRQ_HANDLER, __ioctl_set_irq},
+    {IOCTL_GPIO_IRQ_ENABLE, __ioctl_irq_enable},
+    {IOCTL_GPIO_IRQ_DISABLE, __ioctl_irq_disable},
 };
 
 /*---------- function ----------*/
@@ -150,6 +154,30 @@ static int32_t __ioctl_set_irq(gpio_describe_t *pdesc, void *args)
     pdesc->ops.irq_handler = (gpio_irq_handler_fn)args;
 
     return CY_EOK;
+}
+
+static int32_t __ioctl_irq_enable(gpio_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+
+    if(pdesc->ops.irq_ctrl) {
+        pdesc->ops.irq_ctrl(true);
+        retval = CY_EOK;
+    }
+
+    return retval;
+}
+
+static int32_t __ioctl_irq_disable(gpio_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+
+    if(pdesc->ops.irq_ctrl) {
+        pdesc->ops.irq_ctrl(false);
+        retval = CY_EOK;
+    }
+
+    return retval;
 }
 
 static ioctl_cb_func_t __ioctl_cb_func_find(uint32_t ioctl_cmd)

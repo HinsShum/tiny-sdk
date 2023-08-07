@@ -39,6 +39,8 @@ extern "C"
 #define IOCTL_GPIO_SET                              (IOCTL_USER_START + 0x01)
 #define IOCTL_GPIO_TOGGLE                           (IOCTL_USER_START + 0x02)
 #define IOCTL_GPIO_SET_IRQ_HANDLER                  (IOCTL_USER_START + 0x03)
+#define IOCTL_GPIO_IRQ_ENABLE                       (IOCTL_USER_START + 0x04)
+#define IOCTL_GPIO_IRQ_DISABLE                      (IOCTL_USER_START + 0x05)
 
 /*---------- type define ----------*/
 typedef int32_t (*gpio_irq_handler_fn)(uint32_t, void *, uint32_t);
@@ -50,6 +52,7 @@ typedef struct {
         bool (*get)(void);
         void (*set)(bool val);
         void (*toggle)(void);
+        void (*irq_ctrl)(bool en);
         gpio_irq_handler_fn irq_handler;
     } ops;
 } gpio_describe_t;
