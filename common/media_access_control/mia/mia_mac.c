@@ -322,8 +322,8 @@ void mia_mac_start_bit_detected(mia_mac_t self)
 {
     assert(self);
     assert(self->phy);
-    mia_phy_start_recving(self->phy);
     _mac_bus_lock(self);
+    mia_phy_start_recving(self->phy);
 }
 
 void mia_mac_timer_expired(mia_mac_t self)
@@ -360,15 +360,17 @@ void mia_mac_timer_expired(mia_mac_t self)
             /* recover bus */
             self->bus.disf = self->ops.disf;
             _mac_bus_unlock(self);
+            /* set transmitter state */
+            self->transmitter.state = TRANS_WAIT_ACK;
             break;
         }
         err = mia_phy_monitor_polling(self->phy);
         if(err == MIA_PHY_EX_BUS_FAULT && !self->bus.fault) {
             self->bus.fault = true;
-            /* post bus fault event */
-            self->ops.event_post(MIA_MAC_EVT_BUS_FAULT, true);
             /* lock bus */
             _mac_bus_lock(self);
+            /* post bus fault event */
+            self->ops.event_post(MIA_MAC_EVT_BUS_FAULT, true);
         } else if(err == MIA_PHY_EX_NONE && self->bus.fault) {
             self->bus.fault = false;
             /* post bus recover event */
@@ -410,7 +412,6 @@ void mia_mac_polling(mia_mac_t self)
                     self->bus.disf = self->ops.disf;
                     self->transmitter.state = TRANS_BUSY;
                     mia_phy_start_sending(self->phy, self->transmitter.pbuf, self->transmitter.pos);
-                    self->transmitter.state = TRANS_WAIT_ACK;
 #ifdef CONFIG_MIA_MAC_DEBUG
                     PRINT_BUFFER_CONTENT(COLOR_WHITE, "[MIA]W", self->transmitter.pbuf, self->transmitter.pos);
 #endif
