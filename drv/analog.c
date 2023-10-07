@@ -37,6 +37,7 @@ static int32_t analog_ioctl(driver_t **pdrv, uint32_t cmd, void *args);
 static int32_t _ioctl_enable(analog_describe_t *pdesc, void *args);
 static int32_t _ioctl_disable(analog_describe_t *pdesc, void *args);
 static int32_t _ioctl_get(analog_describe_t *pdesc, void *args);
+static int32_t _ioctl_set_irq_handler(analog_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(analog, analog_open, analog_close, NULL, NULL, analog_ioctl, analog_irq_handler);
@@ -44,6 +45,7 @@ static struct protocol_callback ioctl_cbs[] = {
     {IOCTL_ANALOG_ENABLE, _ioctl_enable},
     {IOCTL_ANALOG_DISABLE, _ioctl_disable},
     {IOCTL_ANALOG_GET, _ioctl_get},
+    {IOCTL_ANALOG_SET_IRQ_HANDLER, _ioctl_set_irq_handler},
 };
 
 /*---------- function ----------*/
@@ -131,6 +133,13 @@ static int32_t _ioctl_get(analog_describe_t *pdesc, void *args)
     } while(0);
 
     return err;
+}
+
+static int32_t _ioctl_set_irq_handler(analog_describe_t *pdesc, void *args)
+{
+    pdesc->ops.irq_handler = (int32_t (*)(uint32_t, void *, uint32_t))args;
+
+    return CY_EOK;
 }
 
 static int32_t analog_ioctl(driver_t **pdrv, uint32_t cmd, void *args)

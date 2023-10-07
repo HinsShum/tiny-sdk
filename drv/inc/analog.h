@@ -38,6 +38,7 @@ extern "C"
 #define IOCTL_ANALOG_ENABLE                             (IOCTL_USER_START + 0x00)
 #define IOCTL_ANALOG_DISABLE                            (IOCTL_USER_START + 0x01)
 #define IOCTL_ANALOG_GET                                (IOCTL_USER_START + 0x02)
+#define IOCTL_ANALOG_SET_IRQ_HANDLER                    (IOCTL_USER_START + 0x03)
 
 /*---------- type define ----------*/
 typedef struct {
