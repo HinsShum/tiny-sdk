@@ -130,6 +130,22 @@ extern "C"
  */
 #define IOCTL_SI446X_GET_PART_INFO                          (IOCTL_USER_START + 0x0A)
 
+/**
+ * @brief Set si446x enter ldc mode
+ * @param Args is not used, it can be NULL.
+ * @retval If LDC mode is enabled when initialize the si446x, it will reurn CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_START_LDC                              (IOCTL_USER_START + 0x0B)
+
+/**
+ * @brief Set si446x exit ldc mode
+ * @param Args is not used, it can be NULL.
+ * @retval If LDC mode is enabled when initialize the si446x, it will reurn CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_STOP_LDC                               (IOCTL_USER_START + 0x0C)
+
 /*---------- type define ----------*/
 typedef enum {
     SI446X_EVT_RX_FIFO_ALMOST_FULL,
@@ -253,6 +269,13 @@ typedef struct {
         uint8_t variable_pos;
         uint8_t variable_off;
     } transmitter;
+    struct {
+        bool enabled;
+        bool started;
+        uint8_t wut_ldc;
+        uint8_t wut_r;
+        uint16_t wut_m;
+    } ldc;
 } si446x_configure_t;
 
 typedef struct {

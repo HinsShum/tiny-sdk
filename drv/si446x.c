@@ -454,6 +454,8 @@ static int32_t _ioctl_interrupt_handling(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_set_evt_cb(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_set_interrup_handler(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_part_info(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_start_ldc(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(si446x, si446x_open, si446x_close, si446x_write, si446x_read, si446x_ioctl, si446x_irq_handler);
@@ -468,7 +470,9 @@ static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_INTERRUPT_HANDLING, _ioctl_interrupt_handling},
     {IOCTL_SI446X_SET_EVT_CALLBACK, _ioctl_set_evt_cb},
     {IOCTL_SI446X_SET_IRQ_HANDLER, _ioctl_set_interrup_handler},
-    {IOCTL_SI446X_GET_PART_INFO, _ioctl_get_part_info}
+    {IOCTL_SI446X_GET_PART_INFO, _ioctl_get_part_info},
+    {IOCTL_SI446X_START_LDC, _ioctl_start_ldc},
+    {IOCTL_SI446X_STOP_LDC, _ioctl_stop_ldc},
 };
 
 /*---------- function ----------*/
@@ -604,6 +608,23 @@ static bool _set_property(si446x_describe_t *pdesc, uint8_t group, uint8_t start
     return retval;
 }
 
+static bool _get_property(si446x_describe_t *pdesc, uint8_t group, uint8_t start, uint8_t *pbuf, uint8_t length)
+{
+    bool retval = false;
+    uint8_t buf[4] = {0};
+
+    if(length <= 0x10) {
+        buf[0] = CMD_GET_PROPERTY;
+        buf[1] = group;
+        buf[2] = length;
+        buf[3] = start;
+        _write_command(pdesc, buf, ARRAY_SIZE(buf));
+        retval = _get_resp(pdesc, pbuf, length);
+    }
+
+    return retval;
+}
+
 static bool _fifo_info(si446x_describe_t *pdesc, si446x_fifo_cmd_t cmd)
 {
     uint8_t buf[2] = {0};
@@ -649,6 +670,31 @@ static bool _start_rx(si446x_describe_t *pdesc, uint8_t channel, uint8_t conditi
     buf[4] = recv_length & 0xFF;
     buf[5] = STATE_NO_CHANGE;
     buf[6] = STATE_READY;
+    buf[7] = STATE_RX;
+    _write_command(pdesc, buf, ARRAY_SIZE(buf));
+
+    return _wait_cts(pdesc);
+}
+
+static bool _start_rx_ldc(si446x_describe_t *pdesc, uint8_t channel, uint8_t condition, uint16_t recv_length)
+{
+    uint8_t buf[8] = {0};
+
+    /* buf[0]: command
+     * buf[1]: channel
+     * buf[2]: condition
+     * buf[3..4]: rx length
+     * buf[5]: next state when rx timeout
+     * buf[6]: next state when rx valid
+     * buf[7]: next state when rx invalid
+     */
+    buf[0] = CMD_START_RX;
+    buf[1] = channel;
+    buf[2] = condition;
+    buf[3] = (recv_length >> 8) & 0x1F;
+    buf[4] = recv_length & 0xFF;
+    buf[5] = STATE_SLEEP;
+    buf[6] = STATE_SLEEP;
     buf[7] = STATE_RX;
     _write_command(pdesc, buf, ARRAY_SIZE(buf));
 
@@ -797,6 +843,31 @@ static bool _reinitialize(si446x_describe_t *pdesc)
         if(pdesc->configure.transmitter.threshold) {
             _set_property(pdesc, GRP_PKT, PKT_TX_THRESHOLD,
                     &pdesc->configure.transmitter.threshold, sizeof(pdesc->configure.transmitter.threshold));
+        }
+        /* configure wut */
+        if(pdesc->configure.ldc.enabled) {
+            struct {
+                uint8_t m_h;
+                uint8_t m_l;
+                uint8_t r;
+                uint8_t ldc;
+            } wut;
+            wut.m_h = (pdesc->configure.ldc.wut_m >> 8) & 0xFF;
+            wut.m_l = pdesc->configure.ldc.wut_m & 0xFF;
+            wut.r = (pdesc->configure.ldc.wut_r & 0x1F) | BIT(5);
+            wut.ldc = pdesc->configure.ldc.wut_ldc;
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_M, (void *)&wut, sizeof(wut));
+            if(pdesc->configure.ldc.started) {
+                uint8_t property = 0;
+                /* enable 32K clock */
+                _get_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+                property = (property & (~(BIT(0) | BIT(1)))) | BIT(0);
+                _set_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+                /* enable wut */
+                _get_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+                property = (property & (~(BIT(6) | BIT(7)))) | BIT(6) | BIT(1);
+                _set_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            }
         }
         /* clear all int pend */
         if(_get_int_status(pdesc, 0, 0, 0) != true) {
@@ -1105,9 +1176,16 @@ static int32_t _ioctl_start_receiving(si446x_describe_t *pdesc, void *args)
             break;
         }
         /* start rx immediately(condition is 0x00) */
-        if(_start_rx(pdesc, 0, UPDATE_RX_PARA_ENTER_RX_MODE | RX_START_IMMEDIATELY, 0) != true) {
-            xlog_tag_error(TAG, "Start SI446x to receive failure\n");
-            break;
+        if(pdesc->configure.ldc.enabled && pdesc->configure.ldc.started) {
+            if(_start_rx_ldc(pdesc, 0, UPDATE_RX_PARA_ENTER_RX_MODE | RX_START_IMMEDIATELY, 0) != true) {
+                xlog_tag_error(TAG, "Start SI446x to receive ldc failure\n");
+                break;
+            }
+        } else {
+            if(_start_rx(pdesc, 0, UPDATE_RX_PARA_ENTER_RX_MODE | RX_START_IMMEDIATELY, 0) != true) {
+                xlog_tag_error(TAG, "Start SI446x to receive failure\n");
+                break;
+            }
         }
         retval = CY_EOK;
     } while(0);
@@ -1304,6 +1382,52 @@ static int32_t _ioctl_get_part_info(si446x_describe_t *pdesc, void *args)
 
     if(args) {
         *part_info = pdesc->part_info;
+        retval = CY_EOK;
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_start_ldc(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+    uint8_t property = 0;
+
+    if(pdesc->configure.ldc.enabled) {
+        if(!pdesc->configure.ldc.started) {
+            /* enable 32K clock */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            property = (property & (~(BIT(0) | BIT(1)))) | BIT(0);
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            /* enable wut */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            property = (property & (~(BIT(6) | BIT(7)))) | BIT(6) | BIT(1);
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            pdesc->configure.ldc.started = true;
+        }
+        retval = CY_EOK;
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+    uint8_t property = 0;
+
+    if(pdesc->configure.ldc.enabled) {
+        if(pdesc->configure.ldc.started) {
+            /* disbale 32K clock */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            property &= (~(BIT(0) | BIT(1)));
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            /* disable wut */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            property &= (~(BIT(1) | BIT(6) | BIT(7)));
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            pdesc->configure.ldc.started = false;
+        }
         retval = CY_EOK;
     }
 
