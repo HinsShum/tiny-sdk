@@ -241,11 +241,18 @@ typedef struct {
     const uint8_t *data;                    /*<< si446x reg configure data array */
     struct {
         bool variable_length_enabled;       /*<< flag for variable length */
+        uint8_t threshold;                  /*<< rx buffer threshold for interrupt: 0-64 */
         union {
             uint16_t variable_max_length;   /*<< field2 max length and field1 length will be set to 0x01 */
             uint16_t fixed_length;          /*<< field1 fixed length */
         } length;
     } receiver;
+    struct {
+        uint8_t threshold;                  /*<< tx buffer empty threshold for interrupt: 0-64 */
+        uint8_t *variable_pbuf;
+        uint8_t variable_pos;
+        uint8_t variable_off;
+    } transmitter;
 } si446x_configure_t;
 
 typedef struct {

@@ -789,6 +789,15 @@ static bool _reinitialize(si446x_describe_t *pdesc)
         if(retval != true) {
             break;
         }
+        /* set tx and rx threshold */
+        if(pdesc->configure.receiver.threshold) {
+            _set_property(pdesc, GRP_PKT, PKT_RX_THRESHOLD,
+                    &pdesc->configure.receiver.threshold, sizeof(pdesc->configure.receiver.threshold));
+        }
+        if(pdesc->configure.transmitter.threshold) {
+            _set_property(pdesc, GRP_PKT, PKT_TX_THRESHOLD,
+                    &pdesc->configure.transmitter.threshold, sizeof(pdesc->configure.transmitter.threshold));
+        }
         /* clear all int pend */
         if(_get_int_status(pdesc, 0, 0, 0) != true) {
             xlog_tag_error(TAG, "Clear SI446x int pend failure during initialize sequence\n");
@@ -868,9 +877,6 @@ static bool _write_variable_length(si446x_describe_t *pdesc, const uint8_t *pbuf
     bool retval = false;
 
     do {
-        if(length > 63) {
-            break;
-        }
         if(_clear_transmiter_fifo(pdesc) != true) {
             break;
         }
@@ -881,20 +887,57 @@ static bool _write_variable_length(si446x_describe_t *pdesc, const uint8_t *pbuf
         if(_get_int_status(pdesc, 0, 0, 0) != true) {
             break;
         }
+        if(length < 64) {
+            pdesc->configure.transmitter.variable_pbuf = NULL;
+            pdesc->configure.transmitter.variable_pos = length;
+            pdesc->configure.transmitter.variable_off = length;
+            length += 1;
+        } else {
+            uint8_t buf[2] = {0, length};
+            pdesc->configure.transmitter.variable_pbuf = (void *)pbuf;
+            pdesc->configure.transmitter.variable_pos = length;
+            pdesc->configure.transmitter.variable_off = 63;
+            length = 0;
+            _set_property(pdesc, GRP_PKT, PKT_FIELD_2_LENGTH, buf, ARRAY_SIZE(buf));
+        }
+        /* fillup tx fifo */
         pdesc->ops.select(true);
         pdesc->ops.xfer(CMD_WRITE_TX_FIFO);
         /* set length to field1 */
-        pdesc->ops.xfer(length);
+        pdesc->ops.xfer(pdesc->configure.transmitter.variable_pos);
         /* set packet to field2 */
-        for(uint8_t i = 0; i < length; ++i) {
+        for(uint8_t i = 0; i < pdesc->configure.transmitter.variable_off; ++i) {
             pdesc->ops.xfer(pbuf[i]);
         }
         pdesc->ops.select(false);
         retval = _start_tx(pdesc, 0, TX_COMPLETE_STATE_RX | UPDATE_TX_PARA_ENTER_TX_MODE |
-                           RETRANSMIT_DISABLE | TX_START_IMMEDIATELY, length + 1);
+                           RETRANSMIT_DISABLE | TX_START_IMMEDIATELY, length);
     } while(0);
 
     return retval;
+}
+
+static void _write_variable_length_continue(si446x_describe_t *pdesc, const uint8_t *pbuf, uint8_t length)
+{
+    uint32_t off = 0;
+
+    if(length > pdesc->configure.transmitter.threshold) {
+        off = pdesc->configure.transmitter.threshold;
+    } else {
+        off = length;
+    }
+    pdesc->configure.transmitter.variable_off += off;
+    pdesc->ops.select(true);
+    pdesc->ops.xfer(CMD_WRITE_TX_FIFO);
+    for(uint8_t i = 0; i < off; ++i) {
+        pdesc->ops.xfer(pbuf[i]);
+    }
+    pdesc->ops.select(false);
+    if(pdesc->configure.transmitter.variable_off == pdesc->configure.transmitter.variable_pos) {
+        pdesc->configure.transmitter.variable_pbuf = NULL;
+        pdesc->configure.transmitter.variable_off = 0;
+        pdesc->configure.transmitter.variable_pos = 0;
+    }
 }
 
 static bool _write_fixed_length(si446x_describe_t *pdesc, const uint8_t *pbuf, uint8_t length)
@@ -1057,6 +1100,10 @@ static int32_t _ioctl_start_receiving(si446x_describe_t *pdesc, void *args)
             xlog_tag_error(TAG, "Reset receiver fifo failure before start receive\n");
             break;
         }
+        if(_receiver_configure(pdesc) != true) {
+            xlog_tag_error(TAG, "Configure receiver failure before start receive\n");
+            break;
+        }
         /* start rx immediately(condition is 0x00) */
         if(_start_rx(pdesc, 0, UPDATE_RX_PARA_ENTER_RX_MODE | RX_START_IMMEDIATELY, 0) != true) {
             xlog_tag_error(TAG, "Start SI446x to receive failure\n");
@@ -1118,6 +1165,12 @@ static inline void __ph_pend_handling(si446x_describe_t *pdesc, uint8_t ph_pend)
         pdesc->ops.evt_cb(SI446X_EVT_RX_FIFO_ALMOST_FULL);
     }
     if(ph_pend & TX_FIFO_ALMOST_EMPTY_PEND) {
+        if(pdesc->configure.transmitter.variable_pbuf &&
+                pdesc->configure.transmitter.variable_off < pdesc->configure.transmitter.variable_pos) {
+            _write_variable_length_continue(pdesc,
+                    &pdesc->configure.transmitter.variable_pbuf[pdesc->configure.transmitter.variable_off],
+                    pdesc->configure.transmitter.variable_pos - pdesc->configure.transmitter.variable_off);
+        }
         pdesc->ops.evt_cb(SI446X_EVT_TX_FIFO_ALMOST_FULL);
     }
     if(ph_pend & ALT_CRC_ERROR_PEND) {

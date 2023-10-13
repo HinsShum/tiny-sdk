@@ -359,10 +359,13 @@ void radio_mac_poll(radio_mac_t self)
                 self->bus.disf = DISF;
                 self->transmitter.state = TRANS_BUSY;
                 self->ops.radio_post(self->transmitter.pbuf, self->transmitter.pos);
+                break;
+            case RADIO_MAC_EVT_TRANSMITTED:
 #ifdef CONFIG_RADIO_MAC_DEBUG
                 PRINT_BUFFER_CONTENT(COLOR_GREEN, "[Radio]W", self->transmitter.pbuf, self->transmitter.pos);
 #endif
                 self->transmitter.state = TRANS_WAI_ACK;
+                _mac_bus_unlock(self);
                 break;
             case RADIO_MAC_EVT_BUS_TRY_LOCK:
                 _mac_bus_lock(self);
