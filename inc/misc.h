@@ -59,9 +59,12 @@ extern "C"
 
 /* debug definition
  */
-#define COLOR_YELLOW                    "\033[33;22m"
 #define COLOR_RED                       "\033[31;22m"
 #define COLOR_GREEN                     "\033[32;22m"
+#define COLOR_YELLOW                    "\033[33;22m"
+#define COLOR_BLUE                      "\033[34;22m"
+#define COLOR_PURPLE                    "\033[35;22m"
+#define COLOR_SKY_BLUE                  "\033[36;22m"
 #define COLOR_WHITE                     "\033[37;22m"
 
 /*---------- type define ----------*/
