@@ -31,6 +31,11 @@
 /*---------- macro ----------*/
 #define DISF                                        (__ms2ticks(200))
 #define BUS_BUSY_TIMEOUT                            (__ms2ticks(50))
+#ifdef CONFIG_RADIO_MAC_DEBUG
+#ifndef CONFIG_RADIO_MAC_LOG_COLOR
+#define CONFIG_RADIO_MAC_LOG_COLOR                  COLOR_GREEN
+#endif
+#endif
 
 /*---------- type define ----------*/
 typedef enum {
@@ -274,7 +279,7 @@ void radio_mac_set_transmitter(radio_mac_t self, const uint8_t *pbuf, uint32_t l
     self->transmitter.state = TRANS_BUSY;
     self->ops.radio_post(pbuf, length);
 #ifdef CONFIG_RADIO_MAC_DEBUG
-    PRINT_BUFFER_CONTENT(COLOR_GREEN, "[Radio]W", pbuf, length);
+    PRINT_BUFFER_CONTENT(CONFIG_RADIO_MAC_LOG_COLOR, "[Radio]W", pbuf, length);
 #endif
     self->bus.disf = DISF;
     self->transmitter.state = old_state;
@@ -336,7 +341,7 @@ void radio_mac_poll(radio_mac_t self)
                 _mac_bus_unlock(self);
                 if(_get_recv_data(self)) {
 #ifdef CONFIG_RADIO_MAC_DEBUG
-                    PRINT_BUFFER_CONTENT(COLOR_GREEN, "[Radio]R",
+                    PRINT_BUFFER_CONTENT(CONFIG_RADIO_MAC_LOG_COLOR, "[Radio]R",
                             self->processer.preceiver->pbuf, self->processer.preceiver->pos);
 #endif
                     /* copy received packet from receiver to processer */
@@ -362,7 +367,7 @@ void radio_mac_poll(radio_mac_t self)
                 break;
             case RADIO_MAC_EVT_TRANSMITTED:
 #ifdef CONFIG_RADIO_MAC_DEBUG
-                PRINT_BUFFER_CONTENT(COLOR_GREEN, "[Radio]W", self->transmitter.pbuf, self->transmitter.pos);
+                PRINT_BUFFER_CONTENT(CONFIG_RADIO_MAC_LOG_COLOR, "[Radio]W", self->transmitter.pbuf, self->transmitter.pos);
 #endif
                 self->transmitter.state = TRANS_WAI_ACK;
                 _mac_bus_unlock(self);

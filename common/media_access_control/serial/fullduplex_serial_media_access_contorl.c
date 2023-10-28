@@ -30,6 +30,12 @@
 
 #ifndef CONFIG_UNUSE_FULLDUPLEX_SERIAL_MAC
 /*---------- macro ----------*/
+#ifdef CONFIG_SERIAL_MAC_DEBUG
+#ifndef CONFIG_FULLDUPLEX_SERIAL_LOG_COLOR
+#define CONFIG_FULLDUPLEX_SERIAL_LOG_COLOR          COLOR_YELLOW
+#endif
+#endif
+
 /*---------- type define ----------*/
 typedef enum {
     RECV_IDLE,
@@ -255,7 +261,7 @@ void fullduplex_serial_mac_set_transmitter(serial_mac_t self, const uint8_t *pbu
     self->transmitter.state = TRANS_BUSY;
     self->ops.serial_post(pbuf, length);
 #ifdef CONFIG_SERIAL_MAC_DEBUG
-    PRINT_BUFFER_CONTENT(COLOR_YELLOW, "[Serial]W", pbuf, length);
+    PRINT_BUFFER_CONTENT(CONFIG_FULLDUPLEX_SERIAL_LOG_COLOR, "[Serial]W", pbuf, length);
 #endif
     self->transmitter.state = old_state;
     self->disf = self->disf_default;
@@ -356,7 +362,7 @@ void fullduplex_serial_mac_poll(serial_mac_t self)
         switch(evt) {
             case SERIAL_MAC_EVT_RECEIVED:
 #ifdef CONFIG_SERIAL_MAC_DEBUG
-                PRINT_BUFFER_CONTENT(COLOR_YELLOW, "[Serial]R", 
+                PRINT_BUFFER_CONTENT(CONFIG_FULLDUPLEX_SERIAL_LOG_COLOR, "[Serial]R", 
                         self->processer.preceiver->pbuf, self->processer.preceiver->pos);
 #endif
                 /* copy received packet from receiver to processer */
@@ -376,7 +382,8 @@ void fullduplex_serial_mac_poll(serial_mac_t self)
                 self->transmitter.state = TRANS_WAIT_ACK;
                 self->disf = self->disf_default;
 #ifdef CONFIG_SERIAL_MAC_DEBUG
-                PRINT_BUFFER_CONTENT(COLOR_YELLOW, "[Serial]W", self->transmitter.pbuf, self->transmitter.pos);
+                PRINT_BUFFER_CONTENT(CONFIG_FULLDUPLEX_SERIAL_LOG_COLOR, "[Serial]W",
+                        self->transmitter.pbuf, self->transmitter.pos);
 #endif
                 break;
             default:

@@ -30,6 +30,11 @@
 
 /*---------- macro ----------*/
 #define DISF                                        __ms2ticks(100)
+#ifdef CONFIG_MIA_MAC_DEBUG
+#ifndef CONFIG_MIA_MAC_LOG_COLOR
+#define CONFIG_MIA_MAC_LOG_COLOR                    COLOR_WHITE
+#endif
+#endif
 
 /*---------- type define ----------*/
 typedef enum {
@@ -281,7 +286,7 @@ void mia_mac_set_transmitter(mia_mac_t self, const uint8_t *pbuf, uint32_t lengt
         self->bus.disf = self->ops.disf;
         self->transmitter.state = old_state;
 #ifdef CONFIG_MIA_MAC_DEBUG
-        PRINT_BUFFER_CONTENT(COLOR_WHITE, "[MIA]W", pbuf, length);
+        PRINT_BUFFER_CONTENT(CONFIG_MIA_MAC_LOG_COLOR, "[MIA]W", pbuf, length);
 #endif
     }
 }
@@ -394,7 +399,8 @@ void mia_mac_polling(mia_mac_t self)
         switch(evt) {
             case MIA_MAC_EVT_RECEIVED:
 #ifdef CONFIG_MIA_MAC_DEBUG
-                PRINT_BUFFER_CONTENT(COLOR_WHITE, "[MIA]R", self->processer.preceiver->pbuf, self->processer.preceiver->pos);
+                PRINT_BUFFER_CONTENT(CONFIG_MIA_MAC_LOG_COLOR, "[MIA]R",
+                        self->processer.preceiver->pbuf, self->processer.preceiver->pos);
 #endif
                 /* copy received packet from receiver to processer */
                 memcpy(self->processer.pbuf, self->processer.preceiver->pbuf, self->processer.preceiver->pos);
@@ -413,7 +419,8 @@ void mia_mac_polling(mia_mac_t self)
                     self->transmitter.state = TRANS_BUSY;
                     mia_phy_start_sending(self->phy, self->transmitter.pbuf, self->transmitter.pos);
 #ifdef CONFIG_MIA_MAC_DEBUG
-                    PRINT_BUFFER_CONTENT(COLOR_WHITE, "[MIA]W", self->transmitter.pbuf, self->transmitter.pos);
+                    PRINT_BUFFER_CONTENT(CONFIG_MIA_MAC_LOG_COLOR, "[MIA]W",
+                            self->transmitter.pbuf, self->transmitter.pos);
 #endif
                 }
                 break;
