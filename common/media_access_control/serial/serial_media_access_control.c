@@ -42,6 +42,7 @@ struct mac_ops {
     void (*recv_byte)(serial_mac_t handle, uint8_t byte);
     void (*timer_expired)(serial_mac_t handle);
     void (*poll)(serial_mac_t handle);
+    void (*dmaorint_send_completed)(serial_mac_t handle);
     void (*called_per_tick)(serial_mac_t handle);
 };
 
@@ -78,6 +79,7 @@ serial_mac_t serial_mac_new(serial_mac_type_t type, uint32_t baudrate, uint32_t 
             self->ops.recv_byte = halfduplex_serial_mac_recv_byte;
             self->ops.timer_expired = halfduplex_serial_mac_timer_expired;
             self->ops.poll = halfduplex_serial_mac_poll;
+            self->ops.dmaorint_send_completed = halfduplex_serial_mac_dmaorint_send_completed;
             self->ops.called_per_tick = halfduplex_serial_mac_called_per_tick;
 #endif
         } else {
@@ -90,6 +92,7 @@ serial_mac_t serial_mac_new(serial_mac_type_t type, uint32_t baudrate, uint32_t 
             self->ops.recv_byte = fullduplex_serial_mac_recv_byte;
             self->ops.timer_expired = fullduplex_serial_mac_timer_expired;
             self->ops.poll = fullduplex_serial_mac_poll;
+            self->ops.dmaorint_send_completed = fullduplex_serial_mac_dmaorint_send_completed;
             self->ops.called_per_tick = fullduplex_serial_mac_called_per_tick;
 #endif
         }
@@ -152,6 +155,13 @@ void serial_mac_poll(serial_mac_t self)
     assert(self);
     assert(self->ops.poll);
     self->ops.poll(self->handle);
+}
+
+void serial_mac_dmaorint_send_completed(serial_mac_t self)
+{
+    assert(self);
+    assert(self->ops.dmaorint_send_completed);
+    self->ops.dmaorint_send_completed(self->handle);
 }
 
 void serial_mac_called_per_tick(serial_mac_t self)

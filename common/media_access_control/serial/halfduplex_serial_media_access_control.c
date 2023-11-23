@@ -87,6 +87,7 @@ struct mac_process {
 
 struct mac_ops {
     uint32_t disf;                  /*<< bus silence time */
+    serial_mac_tx_type_t tx_type;
     /* serial callback interface */
     bool (*serial_init)(uint32_t baudrate);
     void (*serial_post)(const uint8_t *pbuf, uint32_t length);
@@ -238,6 +239,7 @@ serial_mac_t halfduplex_serial_media_access_controller_new(uint32_t baudrate, ui
         self->ops.event_get = ops->halfduplex.event_get;
         self->ops.receive_packet_parse = ops->receive_packet_parse;
         self->ops.disf = ops->halfduplex.disf ? ops->halfduplex.disf : DISF;
+        self->ops.tx_type = ops->halfduplex.tx_type;
         /* assign pointer */
         recv_buf0 = ((uint8_t *)self) + sizeof(*self);
         recv_buf1 = recv_buf0 + recv_capacity + sizeof(*preceiver);
@@ -419,8 +421,10 @@ void halfduplex_serial_mac_poll(serial_mac_t self)
                 self->bus.disf = self->ops.disf;
                 self->transmitter.state = TRANS_BUSY;
                 self->ops.serial_post(self->transmitter.pbuf, self->transmitter.pos);
-                self->transmitter.state = TRANS_WAI_ACK;
-                _mac_bus_unlock(self);
+                if(self->ops.tx_type == SERIAL_MAC_TX_TYPE_POLLING) {
+                    self->transmitter.state = TRANS_WAI_ACK;
+                    _mac_bus_unlock(self);
+                }
 #ifdef CONFIG_SERIAL_MAC_DEBUG
                 PRINT_BUFFER_CONTENT(CONFIG_HALFDUPLEX_SERIAL_LOG_COLOR, "[Serial]W",
                         self->transmitter.pbuf, self->transmitter.pos);
@@ -430,6 +434,12 @@ void halfduplex_serial_mac_poll(serial_mac_t self)
                 break;
         }
     }
+}
+
+void halfduplex_serial_mac_dmaorint_send_completed(serial_mac_t self)
+{
+    self->transmitter.state = TRANS_WAI_ACK;
+    _mac_bus_unlock(self);
 }
 
 void halfduplex_serial_mac_called_per_tick(serial_mac_t self)

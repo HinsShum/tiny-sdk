@@ -127,6 +127,14 @@ extern void fullduplex_serial_mac_timer_expired(serial_mac_t self);
 extern void fullduplex_serial_mac_poll(serial_mac_t self);
 
 /**
+ * @brief Fullduplex serial send data by dma or int and send completed.
+ * @param self The handle of controller.
+ * 
+ * @retval None
+ */
+extern void fullduplex_serial_mac_dmaorint_send_completed(serial_mac_t self);
+
+/**
  * @brief Deal with wait ack timeout event.
  * @note API fullduplex_serial_mac_called_per_tick() should be register to system tick interrupt server function.
  * @param self The handle of controller.

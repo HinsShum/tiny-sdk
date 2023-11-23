@@ -145,6 +145,14 @@ extern void serial_transport_timer_expired(serial_transport_t self);
 extern void serial_transport_poll(serial_transport_t self);
 
 /**
+ * @brief Serial transport send data by dma or int and send completed.
+ * @param self The handle of controller.
+ * 
+ * @retval None
+ */
+extern void serial_transport_dmaorint_send_completed(serial_transport_t self);
+
+/**
  * @brief Deal with wait ack timeout event.
  * @note API serial_transport_called_per_tick() should be register to system tick interrupt server function.
  * @param self The handle of controller.

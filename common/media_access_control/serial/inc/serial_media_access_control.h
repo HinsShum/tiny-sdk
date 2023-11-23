@@ -52,10 +52,16 @@ typedef enum {
     SERIAL_MAC_TYPE_BOUND
 } serial_mac_type_t;
 
+typedef enum {
+    SERIAL_MAC_TX_TYPE_POLLING,
+    SERIAL_MAC_TX_TYPE_DMAORINT,
+} serial_mac_tx_type_t;
+
 typedef struct mac *serial_mac_t;
 
 struct halfduplex_serial_mac_ops {
     uint32_t disf;                  /*<< bus silence time */
+    serial_mac_tx_type_t tx_type;
     /* serial callback interface */
     bool (*serial_init)(uint32_t baudrate);
     void (*serial_post)(const uint8_t *pbuf, uint32_t length);
@@ -69,6 +75,7 @@ struct halfduplex_serial_mac_ops {
 };
 
 struct fullduplex_serial_mac_ops {
+    serial_mac_tx_type_t tx_type;
     /* serial callback interface */
     bool (*serial_init)(uint32_t baudrate);
     void (*serial_post)(const uint8_t *pbuf, uint32_t length);
@@ -179,6 +186,14 @@ extern void serial_mac_timer_expired(serial_mac_t self);
  * @retval None
  */
 extern void serial_mac_poll(serial_mac_t self);
+
+/**
+ * @brief Serial send data by dma or int and data send completed.
+ * @param self The handle of controller.
+ * 
+ * @retval None
+ */
+extern void serial_mac_dmaorint_send_completed(serial_mac_t self);
 
 /**
  * @brief Deal with wait ack timeout event.

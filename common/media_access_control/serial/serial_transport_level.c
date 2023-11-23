@@ -199,6 +199,13 @@ void serial_transport_poll(serial_transport_t self)
     }
 }
 
+void serial_transport_dmaorint_send_completed(serial_transport_t self)
+{
+    assert(self);
+    assert(self->handle);
+    serial_mac_dmaorint_send_completed(self->handle);
+}
+
 void serial_transport_called_per_tick(serial_transport_t self)
 {
     assert(self);
