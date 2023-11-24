@@ -45,6 +45,7 @@ static int32_t _ioctl_serial_set_irq_handler(serial_describe_t *pdesc, void *arg
 static int32_t _ioctl_serial_set_direction(serial_describe_t *pdesc, void *args);
 static int32_t _ioctl_serial_get_baudrate(serial_describe_t *pdesc, void *args);
 static int32_t _ioctl_serial_set_baudrate(serial_describe_t *pdesc, void *args);
+static int32_t _ioctl_serial_byte_sent_ok(serial_describe_t *pdesc, void *args);
 
 /*---------- type define ----------*/
 typedef int32_t (*ioctl_cb_func_t)(serial_describe_t *pdesc, void *args);
@@ -63,7 +64,8 @@ static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_SERIAL_SET_IRQ_HANDLER, _ioctl_serial_set_irq_handler},
     {IOCTL_SERIAL_SET_DIRECTION, _ioctl_serial_set_direction},
     {IOCTL_SERIAL_GET_BAUDRATE, _ioctl_serial_get_baudrate},
-    {IOCTL_SERIAL_SET_BAUDRATE, _ioctl_serial_set_baudrate}
+    {IOCTL_SERIAL_SET_BAUDRATE, _ioctl_serial_set_baudrate},
+    {IOCTL_SERIAL_BYTE_SENT_OK, _ioctl_serial_byte_sent_ok},
 };
 
 /*---------- function ----------*/
@@ -216,6 +218,15 @@ static int32_t _ioctl_serial_set_baudrate(serial_describe_t *pdesc, void *args)
     } while(0);
 
     return retval;
+}
+
+static int32_t _ioctl_serial_byte_sent_ok(serial_describe_t *pdesc, void *args)
+{
+    if(pdesc->ops.byte_sent_ok) {
+        pdesc->ops.byte_sent_ok();
+    }
+
+    return CY_EOK;
 }
 
 static ioctl_cb_func_t _ioctl_cb_func_find(uint32_t ioctl_cmd)

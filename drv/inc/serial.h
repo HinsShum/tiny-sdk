@@ -87,10 +87,17 @@ extern "C"
 #define IOCTL_SERIAL_SET_BAUDRATE                   (IOCTL_USER_START + 0x04)
 
 /**
+ * @brief Notify a byte has been sent when serial send data by DMA or INT.
+ * @param Args None
+ * @retval Always return CY_EOK
+ */
+#define IOCTL_SERIAL_BYTE_SENT_OK                   (IOCTL_USER_START + 0x05)
+
+/**
  * @brief The IOCTL_SERIAL_INHERIT_START is used when other drivers to inherit
  *        the serial driver.
  */
-#define IOCTL_SERIAL_INHERIT_START                  (IOCTL_USER_START + 0x05)
+#define IOCTL_SERIAL_INHERIT_START                  (IOCTL_USER_START + 0x06)
 
 /* Write automatically change dir flag 
  */
@@ -109,6 +116,7 @@ typedef struct {
     void (*deinit)(void);
     void (*dir_change)(serial_direction_en dir);
     uint16_t (*write)(uint8_t *pbuf, uint16_t len);
+    void (*byte_sent_ok)(void);
     int32_t (*irq_handler)(uint32_t irq_handler, void *args, uint32_t len);
 } serial_ops_t;
 
