@@ -91,6 +91,7 @@ struct mac_ops {
     /* serial callback interface */
     bool (*serial_init)(uint32_t baudrate);
     void (*serial_post)(const uint8_t *pbuf, uint32_t length);
+    void (*serial_byte_posted)(uint8_t byte);
     /* timer callback interface */
     bool (*timer_init)(uint32_t t35_50us);
     void (*timer_ctrl)(bool enable);
@@ -232,6 +233,7 @@ serial_mac_t halfduplex_serial_media_access_controller_new(uint32_t baudrate, ui
         /* configure ops callback pointer */
         self->ops.serial_init = ops->halfduplex.serial_init;
         self->ops.serial_post = ops->halfduplex.serial_post;
+        self->ops.serial_byte_posted = ops->halfduplex.serial_byte_posted;
         self->ops.timer_init = ops->halfduplex.timer_init;
         self->ops.timer_ctrl = ops->halfduplex.timer_ctrl;
         self->ops.event_init = ops->halfduplex.event_init;
@@ -364,6 +366,11 @@ void halfduplex_serial_mac_recv_byte(serial_mac_t self, uint8_t byte)
                 break;
             default:
                 break;
+        }
+    } else if(self->ops.tx_type == SERIAL_MAC_TX_TYPE_DMAORINT) {
+        /* notify byte posted */
+        if(self->ops.serial_byte_posted) {
+            self->ops.serial_byte_posted(byte);
         }
     }
 }

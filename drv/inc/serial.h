@@ -116,7 +116,7 @@ typedef struct {
     void (*deinit)(void);
     void (*dir_change)(serial_direction_en dir);
     uint16_t (*write)(uint8_t *pbuf, uint16_t len);
-    void (*byte_sent_ok)(void);
+    void (*byte_sent_ok)(uint8_t byte);
     int32_t (*irq_handler)(uint32_t irq_handler, void *args, uint32_t len);
 } serial_ops_t;
 

@@ -222,8 +222,10 @@ static int32_t _ioctl_serial_set_baudrate(serial_describe_t *pdesc, void *args)
 
 static int32_t _ioctl_serial_byte_sent_ok(serial_describe_t *pdesc, void *args)
 {
-    if(pdesc->ops.byte_sent_ok) {
-        pdesc->ops.byte_sent_ok();
+    uint8_t *byte = (uint8_t *)args;
+
+    if(pdesc->ops.byte_sent_ok && byte) {
+        pdesc->ops.byte_sent_ok(*byte);
     }
 
     return CY_EOK;

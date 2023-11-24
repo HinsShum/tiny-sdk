@@ -65,6 +65,7 @@ struct halfduplex_serial_mac_ops {
     /* serial callback interface */
     bool (*serial_init)(uint32_t baudrate);
     void (*serial_post)(const uint8_t *pbuf, uint32_t length);
+    void (*serial_byte_posted)(uint8_t byte);
     /* timer callback interface */
     bool (*timer_init)(uint32_t t35_50us);
     void (*timer_ctrl)(bool enable);
