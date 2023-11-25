@@ -64,6 +64,9 @@ extern "C"
  */
 #define PRINT_BUFFER_CONTENT(color, tag, buf, length)   \
         do {                                            \
+            if(!length) {                               \
+                break;                                  \
+            }                                           \
             xlog_cont("%s%s: ", color, tag);            \
             for(uint32_t i = 0; i < length; ++i) {      \
                 xlog_cont("%02X ", buf[i]);             \
