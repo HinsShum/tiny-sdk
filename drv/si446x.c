@@ -988,7 +988,7 @@ static bool _write_variable_length(si446x_describe_t *pdesc, const uint8_t *pbuf
     return retval;
 }
 
-static void _write_variable_length_continue(si446x_describe_t *pdesc, const uint8_t *pbuf, uint8_t length)
+static void _write_variable_length_continue(si446x_describe_t *pdesc, const uint8_t *pbuf, uint16_t length)
 {
     uint32_t off = 0;
 
