@@ -303,6 +303,7 @@ radio_mac_expection_t radio_mac_set_transmitter_cache(radio_mac_t self, const ui
             break;
         }
         memcpy(self->transmitter.pbuf, pbuf, length);
+        self->bus.disf = DISF;
         self->transmitter.pos = length;
         self->transmitter.retrans_counter = 0;
         self->transmitter.retrans_max_value = retrans_count;

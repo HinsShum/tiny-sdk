@@ -284,6 +284,7 @@ serial_mac_expection_t fullduplex_serial_mac_set_transmitter_cache(serial_mac_t 
             break;
         }
         memcpy(self->transmitter.pbuf, pbuf, length);
+        self->disf = self->disf_default;
         self->transmitter.pos = length;
         self->transmitter.retrans_counter = 0;
         self->transmitter.retrans_max_value = retrans_count;

@@ -320,6 +320,7 @@ serial_mac_expection_t halfduplex_serial_mac_set_transmitter_cache(serial_mac_t 
             break;
         }
         memcpy(self->transmitter.pbuf, pbuf, length);
+        self->bus.disf = self->ops.disf;
         self->transmitter.pos = length;
         self->transmitter.retrans_counter = 0;
         self->transmitter.retrans_max_value = retrans_count;
