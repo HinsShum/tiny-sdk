@@ -31,7 +31,7 @@
 /*---------- macro ----------*/
 #define CTS                             (0xFF)
 #undef BIT
-#define BIT(n)                          (1UL << n)
+#define BIT(n)                          (1UL << (n))
 
 #define TAG                             "SI446X"
 
@@ -943,6 +943,89 @@ static void si446x_close(driver_t **pdrv)
     }
 }
 
+static void __sync_correct(si446x_describe_t *pdesc)
+{
+    for(uint8_t i = 0; i < ARRAY_SIZE(pdesc->configure.long_preamble.sync_correct); ++i) {
+        for(uint8_t j = 0; j < 8; ++j) {
+            if(pdesc->configure.long_preamble.sync[i] & BIT(j)) {
+                pdesc->configure.long_preamble.sync_correct[i] |= BIT(7 - j);
+            }
+        }
+    }
+}
+
+static bool _write_long_preamble(si446x_describe_t *pdesc, const uint8_t *pbuf, uint8_t length)
+{
+    bool retval = false;
+    uint16_t tsize = 0;
+    uint16_t off = 0;
+    uint8_t filed2_length[2] = {0};
+
+    do {
+        if(_clear_transmiter_fifo(pdesc) != true) {
+            break;
+        }
+        if(_change_state(pdesc, STATE_READY) != true) {
+            break;
+        }
+        if(_get_int_status(pdesc, 0, 0, 0) != true) {
+            break;
+        }
+        if(pdesc->configure.long_preamble.sync_type == SI446X_SYNC_TYPE_AUTOMATIC) {
+            if(_get_property(pdesc, GRP_SYNC, SYNC_CONFIG,
+                    &pdesc->configure.long_preamble.sync_bytes, sizeof(pdesc->configure.long_preamble.sync_bytes)) != true) {
+                break;
+            }
+            pdesc->configure.long_preamble.sync_bytes = (pdesc->configure.long_preamble.sync_bytes & 0x03) + 1;
+            if(_get_property(pdesc, GRP_SYNC, SYNC_BITS,
+                    pdesc->configure.long_preamble.sync, ARRAY_SIZE(pdesc->configure.long_preamble.sync)) != true) {
+                break;
+            }
+            __sync_correct(pdesc);
+        }
+        assert(pdesc->configure.long_preamble.sync_bytes <= 4 && pdesc->configure.long_preamble.sync_bytes != 0);
+        tsize = pdesc->configure.long_preamble.preamble_byts + pdesc->configure.long_preamble.sync_bytes + length + 1;
+        assert(pdesc->configure.long_preamble.pbuf);
+        assert(tsize <= pdesc->configure.long_preamble.capacity);
+        filed2_length[0] = ((tsize - 1) >> 8) & 0xFF;
+        filed2_length[1] = (tsize - 1) & 0xFF;
+        _set_property(pdesc, GRP_SYNC, SYNC_BITS, (const uint8_t *)"\x55\x55\x55\x55", 4);
+        _set_property(pdesc, GRP_PKT, PKT_FIELD_2_LENGTH, filed2_length, ARRAY_SIZE(filed2_length));
+        /* set preamble */
+        memset(pdesc->configure.long_preamble.pbuf, 0xAA, pdesc->configure.long_preamble.preamble_byts);
+        off = pdesc->configure.long_preamble.preamble_byts;
+        /* set sync */
+        memcpy(&pdesc->configure.long_preamble.pbuf[off],
+                pdesc->configure.long_preamble.sync_correct, pdesc->configure.long_preamble.sync_bytes);
+        off += pdesc->configure.long_preamble.sync_bytes;
+        /* set length */
+        pdesc->configure.long_preamble.pbuf[off++] = length;
+        /* set data */
+        memcpy(&pdesc->configure.long_preamble.pbuf[off], pbuf, length);
+        if(tsize < 64) {
+            pdesc->configure.transmitter.variable_pbuf = NULL;
+            pdesc->configure.transmitter.variable_pos = tsize;
+            pdesc->configure.transmitter.variable_off = tsize;
+        } else {
+            pdesc->configure.transmitter.variable_pbuf = pdesc->configure.long_preamble.pbuf;
+            pdesc->configure.transmitter.variable_pos = tsize;
+            pdesc->configure.transmitter.variable_off = 64;
+        }
+        /* fillup fifo */
+        pdesc->ops.select(true);
+        pdesc->ops.xfer(CMD_WRITE_TX_FIFO);
+        for(uint8_t i = 0; i < pdesc->configure.transmitter.variable_off; ++i) {
+            pdesc->ops.xfer(pdesc->configure.transmitter.variable_pbuf[i]);
+        }
+        pdesc->ops.select(false);
+        pdesc->tx_type = SI446X_TX_TYPE_LONG_PREAMBLE;
+        retval = _start_tx(pdesc, 0, TX_COMPLETE_STATE_RX | UPDATE_TX_PARA_ENTER_TX_MODE |
+                RETRANSMIT_DISABLE | TX_START_IMMEDIATELY, 0);
+    } while(0);
+
+    return retval;
+}
+
 static bool _write_variable_length(si446x_describe_t *pdesc, const uint8_t *pbuf, uint8_t length)
 {
     bool retval = false;
@@ -1066,6 +1149,10 @@ static int32_t si446x_write(driver_t **pdrv, void *pbuf, uint32_t type, uint32_t
             }
         } else if(type == SI446X_TRANS_TYPE_FIXED_LENGTH) {
             if(_write_fixed_length(pdesc, pbuf, (length & 0xFF))) {
+                retval = CY_EOK;
+            }
+        } else if(type == SI446X_TRANS_TYPE_LONG_PREAMBLE) {
+            if(_write_long_preamble(pdesc, pbuf, (length & 0xFF))) {
                 retval = CY_EOK;
             }
         }
@@ -1261,6 +1348,11 @@ static inline void __ph_pend_handling(si446x_describe_t *pdesc, uint8_t ph_pend)
         pdesc->ops.evt_cb(SI446X_EVT_PACKET_RX);
     }
     if(ph_pend & PACKET_SENT_PEND) {
+        if(pdesc->tx_type == SI446X_TX_TYPE_LONG_PREAMBLE) {
+            pdesc->tx_type = SI446X_TX_TYPE_NORMAL;
+            _set_property(pdesc, GRP_SYNC, SYNC_BITS,
+                    pdesc->configure.long_preamble.sync, ARRAY_SIZE(pdesc->configure.long_preamble.sync));
+        }
         pdesc->ops.evt_cb(SI446X_EVT_PACKET_SENT);
     }
     if(ph_pend & FILTER_MISS_PEND) {

@@ -175,7 +175,8 @@ typedef enum {
 
 typedef enum {
     SI446X_TRANS_TYPE_VARIABLE_LENGTH,
-    SI446X_TRANS_TYPE_FIXED_LENGTH
+    SI446X_TRANS_TYPE_FIXED_LENGTH,
+    SI446X_TRANS_TYPE_LONG_PREAMBLE,
 } si446x_transmite_type_t;
 
 typedef struct {
@@ -266,8 +267,8 @@ typedef struct {
     struct {
         uint8_t threshold;                  /*<< tx buffer empty threshold for interrupt: 0-64 */
         uint8_t *variable_pbuf;
-        uint8_t variable_pos;
-        uint8_t variable_off;
+        uint16_t variable_pos;
+        uint16_t variable_off;
     } transmitter;
     struct {
         bool enabled;
@@ -276,10 +277,28 @@ typedef struct {
         uint8_t wut_r;
         uint16_t wut_m;
     } ldc;
+    struct {
+        uint8_t *pbuf;
+        uint16_t capacity;
+        uint16_t preamble_byts;
+        enum {
+            SI446X_SYNC_TYPE_AUTOMATIC,
+            SI446X_SYNC_TYPE_MANUAL,
+        } sync_type;
+        uint8_t sync_bytes;
+        uint8_t sync[4];
+        uint8_t sync_correct[4];
+    } long_preamble;
 } si446x_configure_t;
+
+typedef enum {
+    SI446X_TX_TYPE_NORMAL,
+    SI446X_TX_TYPE_LONG_PREAMBLE,
+} si446x_tx_type_t;
 
 typedef struct {
     si446x_configure_t configure;
+    si446x_tx_type_t tx_type;
     si446x_part_info_t part_info;
     si446x_resp_t resp;
     si446x_ops_t ops;
