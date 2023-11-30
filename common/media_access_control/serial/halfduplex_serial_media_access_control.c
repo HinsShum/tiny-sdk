@@ -30,7 +30,7 @@
 
 #ifndef CONFIG_UNUSE_HALFDUPLEX_SERIAL_MAC
 /*---------- macro ----------*/
-#define DISF                                        __ms2ticks(50)
+#define DIFS                                        __ms2ticks(50)
 #ifdef CONFIG_SERIAL_MAC_DEBUG
 #ifndef CONFIG_HALFDUPLEX_SERIAL_LOG_COLOR
 #define CONFIG_HALFDUPLEX_SERIAL_LOG_COLOR          COLOR_YELLOW
@@ -58,7 +58,7 @@ typedef enum {
 
 struct mac_bus {
     bus_state_t state;
-    uint32_t disf;
+    uint32_t difs;
     uint16_t backoff_counter;
 };
 
@@ -86,7 +86,7 @@ struct mac_process {
 };
 
 struct mac_ops {
-    uint32_t disf;                  /*<< bus silence time */
+    uint32_t difs;                  /*<< bus silence time */
     serial_mac_tx_type_t tx_type;
     /* serial callback interface */
     bool (*serial_init)(uint32_t baudrate);
@@ -240,7 +240,7 @@ serial_mac_t halfduplex_serial_media_access_controller_new(uint32_t baudrate, ui
         self->ops.event_post = ops->halfduplex.event_post;
         self->ops.event_get = ops->halfduplex.event_get;
         self->ops.receive_packet_parse = ops->receive_packet_parse;
-        self->ops.disf = ops->halfduplex.disf ? ops->halfduplex.disf : DISF;
+        self->ops.difs = ops->halfduplex.difs ? ops->halfduplex.difs : DIFS;
         self->ops.tx_type = ops->halfduplex.tx_type;
         /* assign pointer */
         recv_buf0 = ((uint8_t *)self) + sizeof(*self);
@@ -274,7 +274,7 @@ serial_mac_t halfduplex_serial_media_access_controller_new(uint32_t baudrate, ui
         /* configure bus */
         self->bus.state = BUS_IDLE;
         self->bus.backoff_counter = 0;
-        self->bus.disf = self->ops.disf;
+        self->bus.difs = self->ops.difs;
     } while(0);
 
     return self;
@@ -300,7 +300,7 @@ void halfduplex_serial_mac_set_transmitter(serial_mac_t self, const uint8_t *pbu
 #ifdef CONFIG_SERIAL_MAC_DEBUG
     PRINT_BUFFER_CONTENT(CONFIG_HALFDUPLEX_SERIAL_LOG_COLOR, "[Serial]W", pbuf, length);
 #endif
-    self->bus.disf = self->ops.disf;
+    self->bus.difs = self->ops.difs;
     self->transmitter.state = old_state;
     _mac_bus_unlock(self);
 }
@@ -320,7 +320,7 @@ serial_mac_expection_t halfduplex_serial_mac_set_transmitter_cache(serial_mac_t 
             break;
         }
         memcpy(self->transmitter.pbuf, pbuf, length);
-        self->bus.disf = self->ops.disf;
+        self->bus.difs = self->ops.difs;
         self->transmitter.pos = length;
         self->transmitter.retrans_counter = 0;
         self->transmitter.retrans_max_value = retrans_count;
@@ -395,7 +395,7 @@ void halfduplex_serial_mac_timer_expired(serial_mac_t self)
     }
     /* recover bus */
     self->processer.preceiver->state = RECV_IDLE;
-    self->bus.disf = self->ops.disf;
+    self->bus.difs = self->ops.difs;
     _mac_bus_unlock(self);
 }
 
@@ -426,7 +426,7 @@ void halfduplex_serial_mac_poll(serial_mac_t self)
                 }
                 break;
             case SERIAL_MAC_EVT_TRANSMITTER_READY:
-                self->bus.disf = self->ops.disf;
+                self->bus.difs = self->ops.difs;
                 self->transmitter.state = TRANS_BUSY;
                 self->ops.serial_post(self->transmitter.pbuf, self->transmitter.pos);
                 if(self->ops.tx_type == SERIAL_MAC_TX_TYPE_POLLING) {
@@ -463,10 +463,10 @@ void halfduplex_serial_mac_called_per_tick(serial_mac_t self)
             /* supend bus transport fsm */
             break;
         }
-        /* silence bus for DISF ticks */
-        if(self->bus.disf) {
-            self->bus.disf--;
-            if(self->bus.disf) {
+        /* silence bus for DIFS ticks */
+        if(self->bus.difs) {
+            self->bus.difs--;
+            if(self->bus.difs) {
                 break;
             }
         }

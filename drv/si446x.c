@@ -1336,7 +1336,7 @@ static inline void __ph_pend_handling(si446x_describe_t *pdesc, uint8_t ph_pend)
                     &pdesc->configure.transmitter.variable_pbuf[pdesc->configure.transmitter.variable_off],
                     pdesc->configure.transmitter.variable_pos - pdesc->configure.transmitter.variable_off);
         }
-        pdesc->ops.evt_cb(SI446X_EVT_TX_FIFO_ALMOST_FULL);
+        pdesc->ops.evt_cb(SI446X_EVT_TX_FIFO_ALMOST_EMPTY);
     }
     if(ph_pend & ALT_CRC_ERROR_PEND) {
         pdesc->ops.evt_cb(SI446X_EVT_ALT_CRC_ERROR);

@@ -149,7 +149,7 @@ extern "C"
 /*---------- type define ----------*/
 typedef enum {
     SI446X_EVT_RX_FIFO_ALMOST_FULL,
-    SI446X_EVT_TX_FIFO_ALMOST_FULL,
+    SI446X_EVT_TX_FIFO_ALMOST_EMPTY,
     SI446X_EVT_ALT_CRC_ERROR,
     SI446X_EVT_CRC_ERROR,
     SI446X_EVT_PACKET_RX,

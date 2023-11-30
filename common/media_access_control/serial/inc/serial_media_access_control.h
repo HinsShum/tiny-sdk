@@ -60,7 +60,7 @@ typedef enum {
 typedef struct mac *serial_mac_t;
 
 struct halfduplex_serial_mac_ops {
-    uint32_t disf;                  /*<< bus silence time */
+    uint32_t difs;                  /*<< bus silence time */
     serial_mac_tx_type_t tx_type;
     /* serial callback interface */
     bool (*serial_init)(uint32_t baudrate);

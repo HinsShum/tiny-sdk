@@ -29,8 +29,8 @@
 #include <string.h>
 
 /*---------- macro ----------*/
-#define DISF                                        (__ms2ticks(200))
-#define BUS_BUSY_TIMEOUT                            (__ms2ticks(50))
+#define DIFS                                        (__ms2ticks(200))       /*<< Distributed Inter-frame Spacing */
+#define BBTE                                        (__ms2ticks(50))        /*<< Bus busy timeout */
 #ifdef CONFIG_RADIO_MAC_DEBUG
 #ifndef CONFIG_RADIO_MAC_LOG_COLOR
 #define CONFIG_RADIO_MAC_LOG_COLOR                  COLOR_GREEN
@@ -52,7 +52,7 @@ typedef enum {
 
 struct mac_bus {
     bus_state_t state;
-    uint8_t disf;
+    uint8_t difs;
     uint16_t backoff_counter;
     uint32_t bus_busy_timeout;
 };
@@ -72,6 +72,13 @@ struct mac_transmit {
     trans_state_t state;
 };
 
+struct mac_responder {
+    uint8_t *pbuf;
+    uint32_t pos;
+    uint32_t capacity;
+    trans_state_t state;
+};
+
 struct mac_process {
     uint8_t *pbuf;
     uint32_t pos;
@@ -80,6 +87,8 @@ struct mac_process {
 };
 
 struct mac_ops {
+    uint32_t difs;      /*<< radio channel idle */
+    uint32_t bbte;      /*<< radio busy timeout */
     /* radio callback interface */
     uint32_t (*radio_receive)(uint8_t *pbuf, uint32_t capacity, bool continuing);
     void (*radio_post)(const uint8_t *pbuf, uint32_t length);
@@ -95,6 +104,7 @@ struct mac {
     struct mac_bus bus;
     struct mac_receive *preceiver;
     struct mac_transmit transmitter;
+    struct mac_responder responder;
     struct mac_process processer;
     struct pingpong_buffer pingpong;
     struct mac_ops ops;
@@ -132,7 +142,7 @@ static inline uint16_t _get_random_backoff(uint16_t retrans_count)
 
 static inline void _mac_bus_lock(radio_mac_t self)
 {
-    self->bus.bus_busy_timeout = BUS_BUSY_TIMEOUT;
+    self->bus.bus_busy_timeout = self->ops.bbte;
     self->bus.state = BUS_BUSY;
 }
 
@@ -212,7 +222,7 @@ radio_mac_t radio_mac_new(uint32_t recv_capacity, uint32_t trans_capacity, radio
         if(RADIO_MAC_EX_NONE != _port_level_init(ops)) {
             break;
         }
-        wanted_size = sizeof(*self) + (recv_capacity + sizeof(*preceiver)) * 2 + recv_capacity + trans_capacity;
+        wanted_size = sizeof(*self) + (recv_capacity + sizeof(*preceiver)) * 2 + recv_capacity + trans_capacity * 2;
         self = __malloc(wanted_size);
         if(!self) {
             break;
@@ -225,11 +235,14 @@ radio_mac_t radio_mac_new(uint32_t recv_capacity, uint32_t trans_capacity, radio
         self->ops.event_post = ops->event_post;
         self->ops.event_get = ops->event_get;
         self->ops.receive_packet_parse = ops->receive_packet_parse;
+        self->ops.difs = ops->difs ? ops->difs : DIFS;
+        self->ops.bbte = ops->bbte ? ops->bbte : BBTE;
         /* assign pointer */
         recv_buf0 = ((uint8_t *)self) + sizeof(*self);
         recv_buf1 = recv_buf0 + recv_capacity + sizeof(*preceiver);
         self->transmitter.pbuf = recv_buf1 + recv_capacity + sizeof(*preceiver);
-        self->processer.pbuf = self->transmitter.pbuf + trans_capacity;
+        self->responder.pbuf = self->transmitter.pbuf + trans_capacity;
+        self->processer.pbuf = self->responder.pbuf + trans_capacity;
         /* register receiver to pingpong buffer */
         preceiver = (struct mac_receive *)recv_buf0;
         preceiver->pbuf = recv_buf0 + sizeof(*preceiver);
@@ -248,12 +261,16 @@ radio_mac_t radio_mac_new(uint32_t recv_capacity, uint32_t trans_capacity, radio
         self->transmitter.retrans_counter = 0;
         self->transmitter.retrans_max_value = 0;
         self->transmitter.state = TRANS_IDLE;
+        /* configure responder */
+        self->responder.capacity = trans_capacity;
+        self->responder.pos = 0;
+        self->responder.state = TRANS_IDLE;
         /* configure processer */
         self->processer.capacity = recv_capacity;
         self->processer.pos = 0;
         self->processer.preceiver = NULL;
         /* configure bus */
-        self->bus.disf = DISF;
+        self->bus.difs = self->ops.difs;
         self->bus.state = BUS_IDLE;
         self->bus.backoff_counter = 0;
         self->bus.bus_busy_timeout = 0;
@@ -268,12 +285,10 @@ void radio_mac_delete(radio_mac_t self)
     __free(self);
 }
 
-void radio_mac_set_transmitter(radio_mac_t self, const uint8_t *pbuf, uint32_t length)
+static inline void _set_transmitter(radio_mac_t self, const uint8_t *pbuf, uint32_t length)
 {
     trans_state_t old_state = TRANS_IDLE;
 
-    assert(self);
-    assert(self->ops.radio_receive);
     old_state = self->transmitter.state;
     _mac_bus_lock(self);
     self->transmitter.state = TRANS_BUSY;
@@ -281,9 +296,29 @@ void radio_mac_set_transmitter(radio_mac_t self, const uint8_t *pbuf, uint32_t l
 #ifdef CONFIG_RADIO_MAC_DEBUG
     PRINT_BUFFER_CONTENT(CONFIG_RADIO_MAC_LOG_COLOR, "[Radio]W", pbuf, length);
 #endif
-    self->bus.disf = DISF;
+    self->bus.difs = self->ops.difs;
     self->transmitter.state = old_state;
-    _mac_bus_unlock(self);
+}
+
+void radio_mac_set_transmitter(radio_mac_t self, const uint8_t *pbuf, uint32_t length)
+{
+    assert(self);
+    assert(self->ops.radio_receive);
+    do {
+        if(_mac_bus_busy(self) == false) {
+            _set_transmitter(self, pbuf, length);
+            break;
+        }
+        if(length > self->responder.capacity) {
+            break;
+        }
+        if(self->responder.state != TRANS_IDLE) {
+            break;
+        }
+        memcpy(self->responder.pbuf, pbuf, length);
+        self->responder.pos = length;
+        self->responder.state = TRANS_READY;
+    } while(0);
 }
 
 radio_mac_expection_t radio_mac_set_transmitter_cache(radio_mac_t self, const uint8_t *pbuf,
@@ -303,7 +338,7 @@ radio_mac_expection_t radio_mac_set_transmitter_cache(radio_mac_t self, const ui
             break;
         }
         memcpy(self->transmitter.pbuf, pbuf, length);
-        self->bus.disf = DISF;
+        self->bus.difs = self->ops.difs;
         self->transmitter.pos = length;
         self->transmitter.retrans_counter = 0;
         self->transmitter.retrans_max_value = retrans_count;
@@ -362,7 +397,7 @@ void radio_mac_poll(radio_mac_t self)
                 _get_recv_data_continue(self);
                 break;
             case RADIO_MAC_EVT_TRANSMITTER_READY:
-                self->bus.disf = DISF;
+                self->bus.difs = self->ops.difs;
                 self->transmitter.state = TRANS_BUSY;
                 self->ops.radio_post(self->transmitter.pbuf, self->transmitter.pos);
                 break;
@@ -370,8 +405,15 @@ void radio_mac_poll(radio_mac_t self)
 #ifdef CONFIG_RADIO_MAC_DEBUG
                 PRINT_BUFFER_CONTENT(CONFIG_RADIO_MAC_LOG_COLOR, "[Radio]W", self->transmitter.pbuf, self->transmitter.pos);
 #endif
-                self->transmitter.state = TRANS_WAI_ACK;
+                if(self->transmitter.pos) {
+                    self->transmitter.state = TRANS_WAI_ACK;
+                }
                 _mac_bus_unlock(self);
+                break;
+            case RADIO_MAC_EVT_RESPONDER_READY:
+                _set_transmitter(self, self->responder.pbuf, self->responder.pos);
+                self->responder.pos = 0;
+                self->responder.state = TRANS_IDLE;
                 break;
             case RADIO_MAC_EVT_BUS_TRY_LOCK:
                 _mac_bus_lock(self);
@@ -397,15 +439,19 @@ void radio_mac_called_per_tick(radio_mac_t self)
                 _mac_bus_unlock(self);
             }
             break;
+        } else if(self->responder.state == TRANS_READY) {
+            self->responder.state = TRANS_BUSY;
+            self->ops.event_post(RADIO_MAC_EVT_RESPONDER_READY, true);
+            break;
         }
         if(self->transmitter.state == TRANS_IDLE || self->transmitter.state == TRANS_BUSY) {
             /* supend bus transport fsm */
             break;
         }
         /* silence bus for DISF ticks */
-        if(self->bus.disf) {
-            self->bus.disf--;
-            if(self->bus.disf) {
+        if(self->bus.difs) {
+            self->bus.difs--;
+            if(self->bus.difs) {
                 break;
             }
         }

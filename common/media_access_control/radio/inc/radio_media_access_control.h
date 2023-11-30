@@ -46,6 +46,7 @@ typedef enum {
     RADIO_MAC_EVT_RECEIVING,
     RADIO_MAC_EVT_TRANSMITTER_READY,
     RADIO_MAC_EVT_TRANSMITTED,
+    RADIO_MAC_EVT_RESPONDER_READY,
     RADIO_MAC_EVT_BUS_TRY_LOCK,
     RADIO_MAC_EVT_BUS_TRY_UNLOCK,
     RADIO_MAC_EVT_CUSTOM_START
@@ -54,6 +55,8 @@ typedef enum {
 typedef struct mac *radio_mac_t;
 
 struct radio_mac_ops {
+    uint32_t difs;      /*<< radio channel idle */
+    uint32_t bbte;      /*<< radio busy timeout */
     /* radio callback interface */
     uint32_t (*radio_receive)(uint8_t *pbuf, uint32_t capacity, bool continuing);
     void (*radio_post)(const uint8_t *pbuf, uint32_t length);

@@ -92,8 +92,8 @@ struct mac_ops {
 };
 
 struct mac {
-    uint32_t disf;
-    uint32_t disf_default;
+    uint32_t difs;
+    uint32_t difs_default;
     struct mac_receive *preceiver;
     struct mac_transmit transmitter;
     struct mac_process processer;
@@ -155,16 +155,16 @@ static serial_mac_expection_t _port_level_init(uint32_t baudrate, serial_mac_ops
 static uint32_t _get_disf(uint32_t baudrate)
 {
     uint32_t us = 0;
-    uint32_t disf = 0;
+    uint32_t difs = 0;
 
     if(baudrate > 19200) {
         us = 1800;
     } else {
         us = ((7UL * 220000UL) / (2UL * baudrate)) * 50;
     }
-    disf = __ms2ticks((us / 1000)) + 1;
+    difs = __ms2ticks((us / 1000)) + 1;
 
-    return disf;
+    return difs;
 }
 
 serial_mac_t fullduplex_serial_media_access_controller_new(uint32_t baudrate, uint32_t recv_capacity,
@@ -239,8 +239,8 @@ serial_mac_t fullduplex_serial_media_access_controller_new(uint32_t baudrate, ui
         self->processer.pos = 0;
         self->processer.preceiver = NULL;
         /* configure other */
-        self->disf_default = _get_disf(baudrate);
-        self->disf = self->disf_default;
+        self->difs_default = _get_disf(baudrate);
+        self->difs = self->difs_default;
     } while(0);
 
     return self;
@@ -266,7 +266,7 @@ void fullduplex_serial_mac_set_transmitter(serial_mac_t self, const uint8_t *pbu
     PRINT_BUFFER_CONTENT(CONFIG_FULLDUPLEX_SERIAL_LOG_COLOR, "[Serial]W", pbuf, length);
 #endif
     self->transmitter.state = old_state;
-    self->disf = self->disf_default;
+    self->difs = self->difs_default;
 }
 
 serial_mac_expection_t fullduplex_serial_mac_set_transmitter_cache(serial_mac_t self, const uint8_t *pbuf,
@@ -284,7 +284,7 @@ serial_mac_expection_t fullduplex_serial_mac_set_transmitter_cache(serial_mac_t 
             break;
         }
         memcpy(self->transmitter.pbuf, pbuf, length);
-        self->disf = self->disf_default;
+        self->difs = self->difs_default;
         self->transmitter.pos = length;
         self->transmitter.retrans_counter = 0;
         self->transmitter.retrans_max_value = retrans_count;
@@ -384,7 +384,7 @@ void fullduplex_serial_mac_poll(serial_mac_t self)
                 self->ops.serial_post(self->transmitter.pbuf, self->transmitter.pos);
                 if(self->ops.tx_type == SERIAL_MAC_TX_TYPE_POLLING) {
                     self->transmitter.state = TRANS_WAIT_ACK;
-                    self->disf = self->disf_default;
+                    self->difs = self->difs_default;
                 }
 #ifdef CONFIG_SERIAL_MAC_DEBUG
                 PRINT_BUFFER_CONTENT(CONFIG_FULLDUPLEX_SERIAL_LOG_COLOR, "[Serial]W",
@@ -400,7 +400,7 @@ void fullduplex_serial_mac_poll(serial_mac_t self)
 void fullduplex_serial_mac_dmaorint_send_completed(serial_mac_t self)
 {
     self->transmitter.state = TRANS_WAIT_ACK;
-    self->disf = self->disf_default;
+    self->difs = self->difs_default;
 }
 
 void fullduplex_serial_mac_called_per_tick(serial_mac_t self)
@@ -412,8 +412,8 @@ void fullduplex_serial_mac_called_per_tick(serial_mac_t self)
             /* supend transport fsm */
             break;
         }
-        if(self->disf) {
-            self->disf--;
+        if(self->difs) {
+            self->difs--;
             break;
         }
         if(self->transmitter.state == TRANS_READY) {
