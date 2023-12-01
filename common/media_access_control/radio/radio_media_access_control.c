@@ -52,7 +52,7 @@ typedef enum {
 
 struct mac_bus {
     bus_state_t state;
-    uint8_t difs;
+    uint32_t difs;
     uint16_t backoff_counter;
     uint32_t bus_busy_timeout;
 };
@@ -142,6 +142,7 @@ static inline uint16_t _get_random_backoff(uint16_t retrans_count)
 
 static inline void _mac_bus_lock(radio_mac_t self)
 {
+    self->bus.difs = self->ops.difs;
     self->bus.bus_busy_timeout = self->ops.bbte;
     self->bus.state = BUS_BUSY;
 }
