@@ -403,10 +403,10 @@ void radio_mac_poll(radio_mac_t self)
                 self->ops.radio_post(self->transmitter.pbuf, self->transmitter.pos);
                 break;
             case RADIO_MAC_EVT_TRANSMITTED:
+                if(self->transmitter.state == TRANS_BUSY) {
 #ifdef CONFIG_RADIO_MAC_DEBUG
-                PRINT_BUFFER_CONTENT(CONFIG_RADIO_MAC_LOG_COLOR, "[Radio]W", self->transmitter.pbuf, self->transmitter.pos);
+                    PRINT_BUFFER_CONTENT(CONFIG_RADIO_MAC_LOG_COLOR, "[Radio]W", self->transmitter.pbuf, self->transmitter.pos);
 #endif
-                if(self->transmitter.pos) {
                     self->transmitter.state = TRANS_WAI_ACK;
                 }
                 _mac_bus_unlock(self);
