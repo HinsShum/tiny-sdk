@@ -46,8 +46,9 @@ typedef enum {
 typedef enum {
     TRANS_IDLE,
     TRANS_READY,
+    TRANS_WAIT_POST,
     TRANS_BUSY,
-    TRANS_WAI_ACK
+    TRANS_WAIT_ACK
 } trans_state_t;
 
 struct mac_bus {
@@ -385,7 +386,7 @@ void radio_mac_poll(radio_mac_t self)
                     memcpy(self->processer.pbuf, self->processer.preceiver->pbuf, self->processer.preceiver->pos);
                     self->processer.pos = self->processer.preceiver->pos;
                     pingpong_buffer_set_read_done(&self->pingpong);
-                    if(self->transmitter.state == TRANS_WAI_ACK) {
+                    if(self->transmitter.state == TRANS_WAIT_ACK) {
                         self->ops.receive_packet_parse(self->processer.pbuf, self->processer.pos,
                                 self->transmitter.pbuf, self->transmitter.pos);
                     } else {
@@ -407,7 +408,7 @@ void radio_mac_poll(radio_mac_t self)
 #ifdef CONFIG_RADIO_MAC_DEBUG
                     PRINT_BUFFER_CONTENT(CONFIG_RADIO_MAC_LOG_COLOR, "[Radio]W", self->transmitter.pbuf, self->transmitter.pos);
 #endif
-                    self->transmitter.state = TRANS_WAI_ACK;
+                    self->transmitter.state = TRANS_WAIT_ACK;
                 }
                 _mac_bus_unlock(self);
                 break;
@@ -435,9 +436,11 @@ void radio_mac_called_per_tick(radio_mac_t self)
     do {
         if(_mac_bus_busy(self)) {
             /* supend bus transport fsm */
-            self->bus.bus_busy_timeout--;
-            if(self->bus.bus_busy_timeout == 0) {
-                _mac_bus_unlock(self);
+            if(self->transmitter.state != TRANS_WAIT_POST) {
+                self->bus.bus_busy_timeout--;
+                if(self->bus.bus_busy_timeout == 0) {
+                    _mac_bus_unlock(self);
+                }
             }
             break;
         } else if(self->responder.state == TRANS_READY) {
@@ -445,7 +448,9 @@ void radio_mac_called_per_tick(radio_mac_t self)
             self->ops.event_post(RADIO_MAC_EVT_RESPONDER_READY, true);
             break;
         }
-        if(self->transmitter.state == TRANS_IDLE || self->transmitter.state == TRANS_BUSY) {
+        if(self->transmitter.state == TRANS_IDLE ||
+                self->transmitter.state == TRANS_BUSY ||
+                self->transmitter.state == TRANS_WAIT_POST) {
             /* supend bus transport fsm */
             break;
         }
@@ -457,7 +462,7 @@ void radio_mac_called_per_tick(radio_mac_t self)
             }
         }
         /* update transmitter */
-        if(self->transmitter.state == TRANS_WAI_ACK) {
+        if(self->transmitter.state == TRANS_WAIT_ACK) {
             if(self->transmitter.retrans_max_value == 0 || 
                     self->transmitter.retrans_counter >= self->transmitter.retrans_max_value) {
                 _clear_transmitter(&self->transmitter);
@@ -473,6 +478,7 @@ void radio_mac_called_per_tick(radio_mac_t self)
         }
         self->bus.backoff_counter--;
         if(!self->bus.backoff_counter) {
+            self->transmitter.state = TRANS_WAIT_POST;
             self->ops.event_post(RADIO_MAC_EVT_TRANSMITTER_READY, true);
             _mac_bus_lock(self);
         }
