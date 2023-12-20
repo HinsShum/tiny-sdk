@@ -146,6 +146,14 @@ extern "C"
  */
 #define IOCTL_SI446X_STOP_LDC                               (IOCTL_USER_START + 0x0C)
 
+/**
+ * @brief Get Si446x rssi information.
+ * @param Arags type is pointer of si446x_rssi_t.
+ * @retval If get success, it will return  CY_EOK, otherwise
+ *         return CY_ERROR or CY_E_WRONG_ARGS. 
+ */
+#define IOCTL_SI446X_GET_RSSI                               (IOCTL_USER_START + 0x0D)
+
 /*---------- type define ----------*/
 typedef enum {
     SI446X_EVT_RX_FIFO_ALMOST_FULL,
@@ -236,6 +244,13 @@ typedef struct {
     uint16_t part_number;       /*<< e.g. si4461 will be 0x4461 */
     uint16_t chip_id;           /*<< chip identity */
 } si446x_part_info_t;
+
+typedef struct {
+    uint8_t curr_rssi;
+    uint8_t latch_rssi;
+    uint8_t anti1_rssi;
+    uint8_t anti2_rssi;
+} si446x_rssi_t;
 
 typedef union {
     struct {

@@ -456,6 +456,7 @@ static int32_t _ioctl_set_interrup_handler(si446x_describe_t *pdesc, void *args)
 static int32_t _ioctl_get_part_info(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_start_ldc(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_get_rssi(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(si446x, si446x_open, si446x_close, si446x_write, si446x_read, si446x_ioctl, si446x_irq_handler);
@@ -473,6 +474,7 @@ static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_GET_PART_INFO, _ioctl_get_part_info},
     {IOCTL_SI446X_START_LDC, _ioctl_start_ldc},
     {IOCTL_SI446X_STOP_LDC, _ioctl_stop_ldc},
+    {IOCTL_SI446X_GET_RSSI, _ioctl_get_rssi},
 };
 
 /*---------- function ----------*/
@@ -1521,6 +1523,28 @@ static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args)
             pdesc->configure.ldc.started = false;
         }
         retval = CY_EOK;
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_get_rssi(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+    si446x_rssi_t *rssi = (si446x_rssi_t *)args;
+    uint8_t buf[8] = {0};
+
+    if(args) {
+        buf[0] = CMD_GET_MODEM_STATUS;
+        buf[1] = 0xFF;
+        _write_command(pdesc, buf, 2);
+        if(_get_resp(pdesc, buf, ARRAY_SIZE(buf))) {
+            rssi->curr_rssi = buf[2];
+            rssi->latch_rssi = buf[3];
+            rssi->anti1_rssi = buf[4];
+            rssi->anti2_rssi = buf[5];
+            retval = CY_EOK;
+        }
     }
 
     return retval;
