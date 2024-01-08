@@ -62,8 +62,8 @@ extern "C"
 
 /*---------- type define ----------*/
 typedef struct {
-    char dev_name[10];
-    char drv_name[10];
+    char dev_name[20];
+    char drv_name[20];
     uint16_t attribute;
     uint32_t count;
     struct st_driver *pdrv;
