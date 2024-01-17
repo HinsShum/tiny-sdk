@@ -1512,14 +1512,14 @@ static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args)
 
     if(pdesc->configure.ldc.enabled) {
         if(pdesc->configure.ldc.started) {
-            /* disbale 32K clock */
-            _get_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
-            property &= (~(BIT(0) | BIT(1)));
-            _set_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
             /* disable wut */
             _get_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
             property &= (~(BIT(1) | BIT(6) | BIT(7)));
             _set_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            /* disbale 32K clock */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            property &= (~(BIT(0) | BIT(1)));
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
             pdesc->configure.ldc.started = false;
         }
         retval = CY_EOK;
