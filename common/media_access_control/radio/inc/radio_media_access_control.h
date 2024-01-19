@@ -60,6 +60,7 @@ struct radio_mac_ops {
     /* radio callback interface */
     uint32_t (*radio_receive)(uint8_t *pbuf, uint32_t capacity, bool continuing);
     void (*radio_post)(const uint8_t *pbuf, uint32_t length);
+    bool (*radio_clear_channel_assessment)(void);       /*<< false: channel busy; true: channel idle */
     /* event callback interface */
     bool (*event_init)(void);
     void (*event_post)(radio_mac_evt_t evt, bool protected);

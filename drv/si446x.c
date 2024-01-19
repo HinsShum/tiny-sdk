@@ -457,6 +457,7 @@ static int32_t _ioctl_get_part_info(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_start_ldc(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_rssi(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(si446x, si446x_open, si446x_close, si446x_write, si446x_read, si446x_ioctl, si446x_irq_handler);
@@ -475,6 +476,7 @@ static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_START_LDC, _ioctl_start_ldc},
     {IOCTL_SI446X_STOP_LDC, _ioctl_stop_ldc},
     {IOCTL_SI446X_GET_RSSI, _ioctl_get_rssi},
+    {IOCTL_SI446X_GET_RSSI_THRESHOLD, _ioctl_get_rssi_thresold},
 };
 
 /*---------- function ----------*/
@@ -836,6 +838,11 @@ static bool _reinitialize(si446x_describe_t *pdesc)
         }
         if(retval != true) {
             break;
+        }
+        /* configure current rssi threshold */
+        if(pdesc->configure.rssi.threshold) {
+            _set_property(pdesc, GRP_MODEM, MODEM_RSSI_THRESH,
+                    &pdesc->configure.rssi.threshold, sizeof(pdesc->configure.rssi.threshold));
         }
         /* set tx and rx threshold */
         if(pdesc->configure.receiver.threshold) {
@@ -1545,6 +1552,19 @@ static int32_t _ioctl_get_rssi(si446x_describe_t *pdesc, void *args)
             rssi->anti2_rssi = buf[5];
             retval = CY_EOK;
         }
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_E_WRONG_ARGS;
+    uint8_t *threshold = (uint8_t *)args;
+
+    if(args) {
+        *threshold = pdesc->configure.rssi.threshold;
+        retval = CY_EOK;
     }
 
     return retval;

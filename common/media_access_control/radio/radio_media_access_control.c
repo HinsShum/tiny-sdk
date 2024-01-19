@@ -93,6 +93,7 @@ struct mac_ops {
     /* radio callback interface */
     uint32_t (*radio_receive)(uint8_t *pbuf, uint32_t capacity, bool continuing);
     void (*radio_post)(const uint8_t *pbuf, uint32_t length);
+    bool (*radio_clear_channel_assessment)(void);       /*<< false: channel busy; true: channel idle */
     /* event callback interface */
     bool (*event_init)(void);
     void (*event_post)(radio_mac_evt_t evt, bool protected);
@@ -157,6 +158,17 @@ static inline void _mac_bus_unlock(radio_mac_t self)
 static inline bool _mac_bus_busy(radio_mac_t self)
 {
     return (BUS_BUSY == self->bus.state);
+}
+
+static inline bool _mac_clear_channel_assessment(radio_mac_t self)
+{
+    bool err = true;
+
+    if(self->ops.radio_clear_channel_assessment) {
+        err = self->ops.radio_clear_channel_assessment();
+    }
+
+    return err;
 }
 
 static inline void _clear_transmitter(struct mac_transmit *transmitter)
@@ -233,6 +245,7 @@ radio_mac_t radio_mac_new(uint32_t recv_capacity, uint32_t trans_capacity, radio
         /* configure ops callback pointer */
         self->ops.radio_receive = ops->radio_receive;
         self->ops.radio_post = ops->radio_post;
+        self->ops.radio_clear_channel_assessment = ops->radio_clear_channel_assessment;
         self->ops.event_init = ops->event_init;
         self->ops.event_post = ops->event_post;
         self->ops.event_get = ops->event_get;
@@ -460,6 +473,11 @@ void radio_mac_called_per_tick(radio_mac_t self)
             if(self->bus.difs) {
                 break;
             }
+            /* cca when disf decreasing to 0 */
+            if(_mac_clear_channel_assessment(self) == false) {
+                _mac_bus_lock(self);
+                break;
+            }
         }
         /* update transmitter */
         if(self->transmitter.state == TRANS_WAIT_ACK) {
@@ -478,6 +496,12 @@ void radio_mac_called_per_tick(radio_mac_t self)
         }
         self->bus.backoff_counter--;
         if(!self->bus.backoff_counter) {
+            /* cca again before send */
+            if(_mac_clear_channel_assessment(self) == false) {
+                _mac_bus_lock(self);
+                self->bus.backoff_counter++;
+                break;
+            }
             self->transmitter.state = TRANS_WAIT_POST;
             self->ops.event_post(RADIO_MAC_EVT_TRANSMITTER_READY, true);
             _mac_bus_lock(self);

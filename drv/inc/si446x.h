@@ -154,6 +154,14 @@ extern "C"
  */
 #define IOCTL_SI446X_GET_RSSI                               (IOCTL_USER_START + 0x0D)
 
+/**
+ * @brief Get SI446x rssi threshold.
+ * @param Args type is pointer of uint8_t.
+ * @retval If get success, it will return CY_EOK, otherwise
+ *         return CY_ERROR or CY_E_WRONG_ARGS.
+ */
+#define IOCTL_SI446X_GET_RSSI_THRESHOLD                     (IOCTL_USER_START + 0x0F)
+
 /*---------- type define ----------*/
 typedef enum {
     SI446X_EVT_RX_FIFO_ALMOST_FULL,
@@ -304,6 +312,9 @@ typedef struct {
         uint8_t sync[4];
         uint8_t sync_correct[4];
     } long_preamble;
+    struct {
+        uint8_t threshold;
+    } rssi;
 } si446x_configure_t;
 
 typedef enum {
