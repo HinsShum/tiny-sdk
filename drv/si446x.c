@@ -42,6 +42,7 @@ typedef enum {
     CMD_FUNC_INFO = 0x10,
     CMD_SET_PROPERTY = 0x11,
     CMD_GET_PROPERTY = 0x12,
+    CMD_GPIO_PIN_CFG = 0x13,
     CMD_GET_ADC_READING = 0x14,
     CMD_FIFO_INFO = 0x15,
     CMD_PACKET_INFO = 0x16,
@@ -458,6 +459,7 @@ static int32_t _ioctl_start_ldc(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_rssi(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(si446x, si446x_open, si446x_close, si446x_write, si446x_read, si446x_ioctl, si446x_irq_handler);
@@ -477,6 +479,7 @@ static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_STOP_LDC, _ioctl_stop_ldc},
     {IOCTL_SI446X_GET_RSSI, _ioctl_get_rssi},
     {IOCTL_SI446X_GET_RSSI_THRESHOLD, _ioctl_get_rssi_thresold},
+    {IOCTL_SI446X_READ_IRQ_PIN, _ioctl_read_irq_pin},
 };
 
 /*---------- function ----------*/
@@ -813,6 +816,7 @@ static bool _reinitialize(si446x_describe_t *pdesc)
 {
     bool retval = false;
     const uint8_t *configure_data = pdesc->configure.data;
+    uint8_t buf[] = {CMD_GPIO_PIN_CFG, 0x00, 0x00, 0x00, 0x00};
 
     do {
         if(pdesc->configure.data == NULL) {
@@ -838,6 +842,27 @@ static bool _reinitialize(si446x_describe_t *pdesc)
         }
         if(retval != true) {
             break;
+        }
+        /* configure gpios */
+        if(pdesc->configure.gpios.gpio0 <= SI446X_GPIO_TYPE_BOUND) {
+            buf[1] = (uint8_t)pdesc->configure.gpios.gpio0 | BIT(6);
+        }
+        if(pdesc->configure.gpios.gpio1 <= SI446X_GPIO_TYPE_BOUND) {
+            buf[2] = (uint8_t)pdesc->configure.gpios.gpio1 | BIT(6);
+        }
+        if(pdesc->configure.gpios.gpio2 <= SI446X_GPIO_TYPE_BOUND) {
+            buf[3] = (uint8_t)pdesc->configure.gpios.gpio2 | BIT(6);
+        }
+        if(pdesc->configure.gpios.gpio3 <= SI446X_GPIO_TYPE_BOUND) {
+            buf[4] = (uint8_t)pdesc->configure.gpios.gpio3 | BIT(6);
+        }
+        _write_command(pdesc, buf, ARRAY_SIZE(buf));
+        _get_resp(pdesc, buf, ARRAY_SIZE(buf) - 1);
+        if((buf[0] & 0x3F) != (uint8_t)pdesc->configure.gpios.gpio0 ||
+                (buf[1] & 0x3F) != (uint8_t)pdesc->configure.gpios.gpio1 ||
+                (buf[2] & 0x3F) != (uint8_t)pdesc->configure.gpios.gpio2 ||
+                (buf[3] & 0x3F) != (uint8_t)pdesc->configure.gpios.gpio3) {
+            xlog_tag_error(TAG, "Configure gpios type failure\n");
         }
         /* configure current rssi threshold */
         if(pdesc->configure.rssi.threshold) {
@@ -1564,6 +1589,19 @@ static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args)
 
     if(args) {
         *threshold = pdesc->configure.rssi.threshold;
+        retval = CY_EOK;
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args)
+{
+    uint8_t *data = (uint8_t *)args;
+    int32_t retval = CY_ERROR;
+
+    if(args && pdesc->ops.get_irq_pin) {
+        *data = (uint8_t)pdesc->ops.get_irq_pin();
         retval = CY_EOK;
     }
 

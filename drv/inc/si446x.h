@@ -162,7 +162,59 @@ extern "C"
  */
 #define IOCTL_SI446X_GET_RSSI_THRESHOLD                     (IOCTL_USER_START + 0x0F)
 
+/**
+ * @brief Read SI446x nirq pin value.
+ * @param Args type is pointer of uint8_t.
+ * @retval If get success, it will return CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_READ_IRQ_PIN                           (IOCTL_USER_START + 0x10)
+
 /*---------- type define ----------*/
+typedef enum {
+    SI446X_GPIO_TYPE_UNDEFINE,
+    SI446X_GPIO_TYPE_TRISTATE,
+    SI446X_GPIO_TYPE_DRIVE0,
+    SI446X_GPIO_TYPE_DRIVE1,
+    SI446X_GPIO_TYPE_INPUT,
+    SI446X_GPIO_TYPE_32K_CLK,
+    SI446X_GPIO_TYPE_BOOT_CLK,
+    SI446X_GPIO_TYPE_DIV_CLK,
+    SI446X_GPIO_TYPE_CTS,
+    SI446X_GPIO_TYPE_INV_CTS,
+    SI446X_GPIO_TYPE_CMD_OVERLAP,
+    SI446X_GPIO_TYPE_SDO,
+    SI446X_GPIO_TYPE_POR,
+    SI446X_GPIO_TYPE_CAL_WUT,
+    SI446X_GPIO_TYPE_WUT,
+    SI446X_GPIO_TYPE_EN_PA,
+    SI446X_GPIO_TYPE_TX_DATA_CLK,
+    SI446X_GPIO_TYPE_RX_DATA_CLK,
+    SI446X_GPIO_TYPE_EN_LNA,
+    SI446X_GPIO_TYPE_TX_DATA,
+    SI446X_GPIO_TYPE_RX_DATA,
+    SI446X_GPIO_TYPE_RX_RAW_DATA,
+    SI446X_GPIO_TYPE_ANTENNA_1_SW,
+    SI446X_GPIO_TYPE_ANTENNA_2_SW,
+    SI446X_GPIO_TYPE_VALID_PREAMBLE,
+    SI446X_GPIO_TYPE_INVALID_PREAMBLE,
+    SI446X_GPIO_TYPE_SYNC_WORD_DETECT,
+    SI446X_GPIO_TYPE_CCA,
+    SI446X_GPIO_TYPE_IN_SLEEP,
+    SI446X_GPIO_TYPE_PKT_TRACE,
+    SI446X_GPIO_TYPE_UNKNOWN1,
+    SI446X_GPIO_TYPE_TX_RX_DATA_CLK,
+    SI446X_GPIO_TYPE_TX_STATE,
+    SI446X_GPIO_TYPE_RX_STATE,
+    SI446X_GPIO_TYPE_RX_FIFO_FULL,
+    SI446X_GPIO_TYPE_TX_FIFO_EMPTY,
+    SI446X_GPIO_TYPE_LOW_BATT,
+    SI446X_GPIO_TYPE_CCA_LATCH,
+    SI446X_GPIO_TYPE_HOPPED,
+    SI446X_GPIO_TYPE_HOP_TABLE_WRAP,
+    SI446X_GPIO_TYPE_BOUND = SI446X_GPIO_TYPE_HOP_TABLE_WRAP,
+} si446x_gpio_type_t;
+
 typedef enum {
     SI446X_EVT_RX_FIFO_ALMOST_FULL,
     SI446X_EVT_TX_FIFO_ALMOST_EMPTY,
@@ -228,6 +280,11 @@ typedef struct {
      * @retval The data to be sent to the master
      */
     uint8_t (*xfer)(uint8_t data);
+    /**
+     * @brief Read nirq pin value.
+     * @retval High or Low.
+     */
+    bool (*get_irq_pin)(void);
     /**
      * @brief SI446x event callback
      * @param evt reference @si446x_evt_t.
@@ -315,6 +372,12 @@ typedef struct {
     struct {
         uint8_t threshold;
     } rssi;
+    struct {
+        si446x_gpio_type_t gpio0;
+        si446x_gpio_type_t gpio1;
+        si446x_gpio_type_t gpio2;
+        si446x_gpio_type_t gpio3;
+    } gpios;
 } si446x_configure_t;
 
 typedef enum {
