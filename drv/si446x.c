@@ -457,6 +457,8 @@ static int32_t _ioctl_set_interrup_handler(si446x_describe_t *pdesc, void *args)
 static int32_t _ioctl_get_part_info(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_start_ldc(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_start_ldc_start_receiving(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_stop_ldc_start_receiving(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_rssi(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args);
@@ -477,6 +479,8 @@ static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_GET_PART_INFO, _ioctl_get_part_info},
     {IOCTL_SI446X_START_LDC, _ioctl_start_ldc},
     {IOCTL_SI446X_STOP_LDC, _ioctl_stop_ldc},
+    {IOCTL_SI446X_START_LDC_START_RECEIVING, _ioctl_start_ldc_start_receiving},
+    {IOCTL_SI446X_STOP_LDC_START_RECEIVING, _ioctl_stop_ldc_start_receiving},
     {IOCTL_SI446X_GET_RSSI, _ioctl_get_rssi},
     {IOCTL_SI446X_GET_RSSI_THRESHOLD, _ioctl_get_rssi_thresold},
     {IOCTL_SI446X_READ_IRQ_PIN, _ioctl_read_irq_pin},
@@ -1555,6 +1559,56 @@ static int32_t _ioctl_stop_ldc(si446x_describe_t *pdesc, void *args)
             pdesc->configure.ldc.started = false;
         }
         retval = CY_EOK;
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_start_ldc_start_receiving(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+    uint8_t property = 0;
+
+    if(pdesc->configure.ldc.enabled) {
+        retval = CY_EOK;
+        if(!pdesc->configure.ldc.started) {
+            /* enable 32K clock */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            property = (property & (~(BIT(0) | BIT(1)))) | BIT(0);
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            /* enable wut */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            property = (property & (~(BIT(6) | BIT(7)))) | BIT(6) | BIT(1);
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            pdesc->configure.ldc.started = true;
+            /* start receiving */
+            retval = _ioctl_start_receiving(pdesc, NULL);
+        }
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_stop_ldc_start_receiving(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+    uint8_t property = 0;
+
+    if(pdesc->configure.ldc.enabled) {
+        retval = CY_EOK;
+        if(pdesc->configure.ldc.started) {
+            /* disable wut */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            property &= (~(BIT(1) | BIT(6) | BIT(7)));
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_WUT_CONFIG, &property, sizeof(property));
+            /* disbale 32K clock */
+            _get_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            property &= (~(BIT(0) | BIT(1)));
+            _set_property(pdesc, GRP_GLOBAL, GLOBAL_CLK_CFG, &property, sizeof(property));
+            pdesc->configure.ldc.started = false;
+            /* start receiving */
+            retval = _ioctl_start_receiving(pdesc, NULL);
+        }
     }
 
     return retval;

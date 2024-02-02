@@ -147,12 +147,28 @@ extern "C"
 #define IOCTL_SI446X_STOP_LDC                               (IOCTL_USER_START + 0x0C)
 
 /**
+ * @brief Set si446x enter ldc mode and start receiving
+ * @param Args is not used, it can be NULL.
+ * @retval If LDC mode is enabled when initialize the si446x, it will reurn CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_START_LDC_START_RECEIVING              (IOCTL_USER_START + 0x0D)
+
+/**
+ * @brief Stop si446x enter ldc mode and start receiving
+ * @param Args is not used, it can be NULL.
+ * @retval If LDC mode is disabled when initialize the si446x, it will reurn CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_STOP_LDC_START_RECEIVING               (IOCTL_USER_START + 0x0E)
+
+/**
  * @brief Get Si446x rssi information.
  * @param Arags type is pointer of si446x_rssi_t.
  * @retval If get success, it will return  CY_EOK, otherwise
  *         return CY_ERROR or CY_E_WRONG_ARGS. 
  */
-#define IOCTL_SI446X_GET_RSSI                               (IOCTL_USER_START + 0x0D)
+#define IOCTL_SI446X_GET_RSSI                               (IOCTL_USER_START + 0x0F)
 
 /**
  * @brief Get SI446x rssi threshold.
@@ -160,7 +176,7 @@ extern "C"
  * @retval If get success, it will return CY_EOK, otherwise
  *         return CY_ERROR or CY_E_WRONG_ARGS.
  */
-#define IOCTL_SI446X_GET_RSSI_THRESHOLD                     (IOCTL_USER_START + 0x0F)
+#define IOCTL_SI446X_GET_RSSI_THRESHOLD                     (IOCTL_USER_START + 0x10)
 
 /**
  * @brief Read SI446x nirq pin value.
@@ -168,7 +184,7 @@ extern "C"
  * @retval If get success, it will return CY_EOK, otherwise
  *         return CY_ERROR.
  */
-#define IOCTL_SI446X_READ_IRQ_PIN                           (IOCTL_USER_START + 0x10)
+#define IOCTL_SI446X_READ_IRQ_PIN                           (IOCTL_USER_START + 0x11)
 
 /*---------- type define ----------*/
 typedef enum {
