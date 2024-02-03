@@ -461,6 +461,7 @@ static int32_t _ioctl_start_ldc_start_receiving(si446x_describe_t *pdesc, void *
 static int32_t _ioctl_stop_ldc_start_receiving(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_rssi(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_get_current_state(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
@@ -483,6 +484,7 @@ static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_STOP_LDC_START_RECEIVING, _ioctl_stop_ldc_start_receiving},
     {IOCTL_SI446X_GET_RSSI, _ioctl_get_rssi},
     {IOCTL_SI446X_GET_RSSI_THRESHOLD, _ioctl_get_rssi_thresold},
+    {IOCTL_SI446X_GET_CURRENT_STATE, _ioctl_get_current_state},
     {IOCTL_SI446X_READ_IRQ_PIN, _ioctl_read_irq_pin},
 };
 
@@ -1644,6 +1646,25 @@ static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args)
     if(args) {
         *threshold = pdesc->configure.rssi.threshold;
         retval = CY_EOK;
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_get_current_state(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_E_WRONG_ARGS;
+    si446x_curr_state_t *state = (si446x_curr_state_t *)args;
+    uint8_t cmd = CMD_REQUEST_DEVICE_STATE;
+    uint8_t resp = 0;
+
+    if(args) {
+        retval = CY_ERROR;
+        _write_command(pdesc, &cmd, sizeof(cmd));
+        if(_get_resp(pdesc, &resp, sizeof(resp)) && resp != 0) {
+            *state = (si446x_curr_state_t)(resp - 1);
+            retval = CY_EOK;
+        }
     }
 
     return retval;

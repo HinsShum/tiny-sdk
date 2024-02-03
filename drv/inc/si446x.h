@@ -179,12 +179,20 @@ extern "C"
 #define IOCTL_SI446X_GET_RSSI_THRESHOLD                     (IOCTL_USER_START + 0x10)
 
 /**
+ * @brief Get SI446x current state
+ * @param Args type is pointer of si446x_state_t.
+ * @retval If get success, it will return CY_EOK, otherwise
+ *         return CY_ERROR or CY_E_WRONG_ARGS.
+ */
+#define IOCTL_SI446X_GET_CURRENT_STATE                      (IOCTL_USER_START + 0x11)
+
+/**
  * @brief Read SI446x nirq pin value.
  * @param Args type is pointer of uint8_t.
  * @retval If get success, it will return CY_EOK, otherwise
  *         return CY_ERROR.
  */
-#define IOCTL_SI446X_READ_IRQ_PIN                           (IOCTL_USER_START + 0x11)
+#define IOCTL_SI446X_READ_IRQ_PIN                           (IOCTL_USER_START + 0x12)
 
 /*---------- type define ----------*/
 typedef enum {
@@ -230,6 +238,17 @@ typedef enum {
     SI446X_GPIO_TYPE_HOP_TABLE_WRAP,
     SI446X_GPIO_TYPE_BOUND = SI446X_GPIO_TYPE_HOP_TABLE_WRAP,
 } si446x_gpio_type_t;
+
+typedef enum {
+    SI446X_CURR_STATE_SLEEP,
+    SI446X_CURR_STATE_SPI_ACTIVE,
+    SI446X_CURR_STATE_READY,
+    SI446X_CURR_STATE_READY2,
+    SI446X_CURR_STATE_TX_TUNE,
+    SI446X_CURR_STATE_RX_TUNE,
+    SI446X_CURR_STATE_TX,
+    SI446X_CURR_STATE_RX,
+} si446x_curr_state_t;
 
 typedef enum {
     SI446X_EVT_RX_FIFO_ALMOST_FULL,
