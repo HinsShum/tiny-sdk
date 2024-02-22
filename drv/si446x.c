@@ -463,6 +463,7 @@ static int32_t _ioctl_get_rssi(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_current_state(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_clear_interrupt(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(si446x, si446x_open, si446x_close, si446x_write, si446x_read, si446x_ioctl, si446x_irq_handler);
@@ -486,6 +487,7 @@ static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_GET_RSSI_THRESHOLD, _ioctl_get_rssi_thresold},
     {IOCTL_SI446X_GET_CURRENT_STATE, _ioctl_get_current_state},
     {IOCTL_SI446X_READ_IRQ_PIN, _ioctl_read_irq_pin},
+    {IOCTL_SI446X_CLEAR_INTERRUPT, _ioctl_clear_interrupt},
 };
 
 /*---------- function ----------*/
@@ -1681,6 +1683,11 @@ static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args)
     }
 
     return retval;
+}
+
+static int32_t _ioctl_clear_interrupt(si446x_describe_t *pdesc, void *args)
+{
+    return (_get_int_status(pdesc, 0, 0, 0) ? CY_EOK : CY_ERROR);
 }
 
 static ioctl_cb_func_t _ioctl_cb_func_find(uint32_t cmd)

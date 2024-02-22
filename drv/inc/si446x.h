@@ -194,6 +194,14 @@ extern "C"
  */
 #define IOCTL_SI446X_READ_IRQ_PIN                           (IOCTL_USER_START + 0x12)
 
+/**
+ * @brief Clear SI446x interrupt pend status
+ * @param Args is not used, it can be NULL.
+ * @retval If clear success, it will return CY_EOK, otherwise
+ *         return  CY_ERROR.
+ */
+#define IOCTL_SI446X_CLEAR_INTERRUPT                        (IOCTL_USER_START + 0x13)
+
 /*---------- type define ----------*/
 typedef enum {
     SI446X_GPIO_TYPE_UNDEFINE,
