@@ -53,7 +53,7 @@ typedef enum {
     TRANS_IDLE,
     TRANS_READY,
     TRANS_BUSY,
-    TRANS_WAI_ACK
+    TRANS_WAIT_ACK
 } trans_state_t;
 
 struct mac_bus {
@@ -76,6 +76,7 @@ struct mac_transmit {
     uint16_t retrans_counter;
     uint16_t retrans_max_value;
     trans_state_t state;
+    trans_state_t dmaorint_state;
 };
 
 struct mac_process {
@@ -297,12 +298,16 @@ void halfduplex_serial_mac_set_transmitter(serial_mac_t self, const uint8_t *pbu
     _mac_bus_lock(self);
     self->transmitter.state = TRANS_BUSY;
     self->ops.serial_post(pbuf, length);
+    self->bus.difs = self->ops.difs;
+    if(self->ops.tx_type == SERIAL_MAC_TX_TYPE_POLLING) {
+        self->transmitter.state = old_state;
+        _mac_bus_unlock(self);
+    } else {
+        self->transmitter.dmaorint_state = old_state;
+    }
 #ifdef CONFIG_SERIAL_MAC_DEBUG
     PRINT_BUFFER_CONTENT(CONFIG_HALFDUPLEX_SERIAL_LOG_COLOR, "[Serial]W", pbuf, length);
 #endif
-    self->bus.difs = self->ops.difs;
-    self->transmitter.state = old_state;
-    _mac_bus_unlock(self);
 }
 
 serial_mac_expection_t halfduplex_serial_mac_set_transmitter_cache(serial_mac_t self, const uint8_t *pbuf, 
@@ -418,7 +423,7 @@ void halfduplex_serial_mac_poll(serial_mac_t self)
                 memcpy(self->processer.pbuf, self->processer.preceiver->pbuf, self->processer.preceiver->pos);
                 self->processer.pos = self->processer.preceiver->pos;
                 pingpong_buffer_set_read_done(&self->pingpong);
-                if(self->transmitter.state == TRANS_WAI_ACK) {
+                if(self->transmitter.state == TRANS_WAIT_ACK) {
                     self->ops.receive_packet_parse(self->processer.pbuf, self->processer.pos, 
                             self->transmitter.pbuf, self->transmitter.pos);
                 } else {
@@ -430,8 +435,10 @@ void halfduplex_serial_mac_poll(serial_mac_t self)
                 self->transmitter.state = TRANS_BUSY;
                 self->ops.serial_post(self->transmitter.pbuf, self->transmitter.pos);
                 if(self->ops.tx_type == SERIAL_MAC_TX_TYPE_POLLING) {
-                    self->transmitter.state = TRANS_WAI_ACK;
+                    self->transmitter.state = TRANS_WAIT_ACK;
                     _mac_bus_unlock(self);
+                } else {
+                    self->transmitter.dmaorint_state = TRANS_WAIT_ACK;
                 }
 #ifdef CONFIG_SERIAL_MAC_DEBUG
                 PRINT_BUFFER_CONTENT(CONFIG_HALFDUPLEX_SERIAL_LOG_COLOR, "[Serial]W",
@@ -446,7 +453,7 @@ void halfduplex_serial_mac_poll(serial_mac_t self)
 
 void halfduplex_serial_mac_dmaorint_send_completed(serial_mac_t self)
 {
-    self->transmitter.state = TRANS_WAI_ACK;
+    self->transmitter.state = self->transmitter.dmaorint_state;
     _mac_bus_unlock(self);
 }
 
@@ -471,7 +478,7 @@ void halfduplex_serial_mac_called_per_tick(serial_mac_t self)
             }
         }
         /* update transmitter */
-        if(self->transmitter.state == TRANS_WAI_ACK) {
+        if(self->transmitter.state == TRANS_WAIT_ACK) {
             uint16_t retrans_count = self->transmitter.retrans_counter + 1;
             if(self->transmitter.retrans_max_value == 0 || retrans_count > self->transmitter.retrans_max_value) {
                 _clear_transmitter(&self->transmitter);
