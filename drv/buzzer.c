@@ -39,25 +39,31 @@ static int32_t buzzer_ioctl(driver_t **pdrv, uint32_t cmd, void *args);
 static int32_t __ioctl_turn_on(buzzer_describe_t *pdesc, void *args);
 static int32_t __ioctl_turn_off(buzzer_describe_t *pdesc, void *args);
 static int32_t __ioctl_toggle(buzzer_describe_t *pdesc, void *args);
-static int32_t __ioctl_set_cycle(buzzer_describe_t *pdesc, void *args);
-static int32_t __ioctl_get_cycle(buzzer_describe_t *pdesc, void *args);
+static int32_t __ioctl_toggle_once(buzzer_describe_t *pdesc, void *args);
+static int32_t __ioctl_set_toggle(buzzer_describe_t *pdesc, void *args);
+static int32_t __ioctl_get_toggle(buzzer_describe_t *pdesc, void *args);
+static int32_t __ioctl_get_status(buzzer_describe_t *pdesc, void *args);
+static int32_t __ioctl_set_freq(buzzer_describe_t *pdesc, void *args);
+static int32_t __ioctl_get_freq(buzzer_describe_t *pdesc, void *args);
+static int32_t __ioctl_set_duty(buzzer_describe_t *pdesc, void *args);
+static int32_t __ioctl_get_duty(buzzer_describe_t *pdesc, void *args);
 
 /*---------- type define ----------*/
-typedef int32_t (*ioctl_cb_func_t)(buzzer_describe_t *pdesc, void *args);
-typedef struct {
-    uint32_t ioctl_cmd;
-    ioctl_cb_func_t cb;
-} ioctl_cb_t;
-
 /*---------- variable ----------*/
 DRIVER_DEFINED(buzzer, buzzer_open, buzzer_close, NULL, NULL, buzzer_ioctl, NULL);
 
-static ioctl_cb_t ioctl_cb_array[] = {
+static struct protocol_callback ioctl_cb_array[] = {
     {IOCTL_BUZZER_ON, __ioctl_turn_on},
     {IOCTL_BUZZER_OFF, __ioctl_turn_off},
     {IOCTL_BUZZER_TOGGLE, __ioctl_toggle},
-    {IOCTL_BUZZER_SET_CYCLE, __ioctl_set_cycle},
-    {IOCTL_BUZZER_GET_CYCLE, __ioctl_get_cycle}
+    {IOCTL_BUZZER_TOGGLE_ONCE, __ioctl_toggle_once},
+    {IOCTL_BUZZER_SET_TOGGLE, __ioctl_set_toggle},
+    {IOCTL_BUZZER_GET_TOGGLE, __ioctl_get_toggle},
+    {IOCTL_BUZZER_GET_STATUS, __ioctl_get_status},
+    {IOCTL_BUZZER_SET_FREQ, __ioctl_set_freq},
+    {IOCTL_BUZZER_GET_FREQ, __ioctl_get_freq},
+    {IOCTL_BUZZER_SET_DUTY, __ioctl_set_duty},
+    {IOCTL_BUZZER_GET_DUTY, __ioctl_get_duty},
 };
 
 /*---------- function ----------*/
@@ -80,6 +86,9 @@ static int32_t buzzer_open(driver_t **pdrv)
                 xlog_tag_warn(TAG, "initialize failed\n");
             }
         }
+        if(pdesc->ops.ctrl) {
+            pdesc->ops.ctrl(false);
+        }
     } while(0);
 
     return retval;
@@ -91,94 +100,217 @@ static void buzzer_close(driver_t **pdrv)
 
     assert(pdrv);
     pdesc = container_of(pdrv, device_t, pdrv)->pdesc;
-    if(pdesc && pdesc->ops.deinit) {
-        pdesc->ops.deinit();
+    if(pdesc) {
+        if(pdesc->ops.ctrl) {
+            pdesc->ops.ctrl(false);
+        }
+        if(pdesc->ops.deinit) {
+            pdesc->ops.deinit();
+        }
     }
 }
 
 static int32_t __ioctl_turn_on(buzzer_describe_t *pdesc, void *args)
 {
+    int32_t err = CY_EOK;
+
     if(pdesc->ops.ctrl) {
-        pdesc->ops.ctrl(true);
+        if(!pdesc->ops.ctrl(true)) {
+            err = CY_ERROR;
+            xlog_tag_error(TAG, "Turn on buzzer failure\n");
+        }
+        pdesc->toggle.millisecond = 0;
+        pdesc->toggle.count = 0;
     }
 
-    return CY_EOK;
+    return err;
 }
 
 static int32_t __ioctl_turn_off(buzzer_describe_t *pdesc, void *args)
 {
+    int32_t err = CY_EOK;
+
     if(pdesc->ops.ctrl) {
-        pdesc->ops.ctrl(false);
-        pdesc->cycle.cycle_count = 0;
-        pdesc->cycle.cycle_time = 0;
+        if(!pdesc->ops.ctrl(false)) {
+            err = CY_ERROR;
+            xlog_tag_error(TAG, "Turn off buzzer failure\n");
+        }
+        pdesc->toggle.millisecond = 0;
+        pdesc->toggle.count = 0;
     }
 
-    return CY_EOK;
+    return err;
+}
+
+static int32_t __ioctl_toggle_once(buzzer_describe_t *pdesc, void *args)
+{
+    int32_t err = CY_EOK;
+
+    if(pdesc->ops.toggle) {
+        if(!pdesc->ops.toggle()) {
+            err = CY_ERROR;
+            xlog_tag_error(TAG, "Toggle buzzer failure\n");
+        }
+        pdesc->toggle.millisecond = 0;
+        pdesc->toggle.count = 0;
+    }
+
+    return err;
 }
 
 static int32_t __ioctl_toggle(buzzer_describe_t *pdesc, void *args)
 {
-    if(pdesc->ops.toggle) {
-        pdesc->ops.toggle();
-        if(pdesc->cycle.cycle_count != 0 && pdesc->cycle.cycle_count != BUZZER_CYCLE_COUNT_MAX) {
-            pdesc->cycle.cycle_count--;
-        }
-    }
+    int32_t err = CY_EOK;
 
-    return CY_EOK;
+    do {
+        if(!pdesc->ops.toggle) {
+            break;
+        }
+        if(!pdesc->toggle.millisecond || !pdesc->toggle.count) {
+            break;
+        }
+        if(!(__get_ticks_from_isr() % pdesc->toggle.millisecond)) {
+            if(!pdesc->ops.toggle()) {
+                err = CY_ERROR;
+                xlog_tag_error(TAG, "Toggle buzzer failure\n");
+                break;
+            }
+            if(pdesc->toggle.count && pdesc->toggle.count != BUZZER_TOGGLE_COUNT_MAX) {
+                pdesc->toggle.count--;
+            }
+        }
+    } while(0);
+
+    return err;
 }
 
-static int32_t __ioctl_set_cycle(buzzer_describe_t *pdesc, void *args)
+static int32_t __ioctl_set_toggle(buzzer_describe_t *pdesc, void *args)
 {
-    int32_t retval = CY_E_WRONG_ARGS;
-    buzzer_cycle_t *cycle = (buzzer_cycle_t *)args;
+    int32_t err = CY_E_WRONG_ARGS;
+    buzzer_toggle_t *toggle = (buzzer_toggle_t *)args;
 
     if(!args) {
-        xlog_tag_error(TAG, "Args format error, can not set buzzer cycle\n");
+        xlog_tag_error(TAG, "Args format error, can not set buzzer toggle\n");
     } else {
-        pdesc->cycle.cycle_count = cycle->cycle_count;
-        pdesc->cycle.cycle_time = cycle->cycle_time;
-        retval = CY_EOK;
+        pdesc->toggle = *toggle;
+        err = CY_EOK;
     }
 
-    return retval;
+    return err;
 }
 
-static int32_t __ioctl_get_cycle(buzzer_describe_t *pdesc, void *args)
+static int32_t __ioctl_get_toggle(buzzer_describe_t *pdesc, void *args)
 {
-    int32_t retval = CY_E_WRONG_ARGS;
-    buzzer_cycle_t *cycle = (buzzer_cycle_t *)args;
+    int32_t err = CY_E_WRONG_ARGS;
+    buzzer_toggle_t *toggle = (buzzer_toggle_t *)args;
 
     if(!args) {
         xlog_tag_error(TAG, "Args format error, can not get buzzer cycle\n");
     } else {
-        cycle->cycle_count = pdesc->cycle.cycle_count;
-        cycle->cycle_time = pdesc->cycle.cycle_time;
-        retval = CY_EOK;
+        *toggle = pdesc->toggle;
+        err = CY_EOK;
     }
 
-    return retval;
+    return err;
 }
 
-static ioctl_cb_func_t __ioctl_cb_func_find(uint32_t ioctl_cmd)
+static int32_t __ioctl_get_status(buzzer_describe_t *pdesc, void *args)
 {
-    ioctl_cb_func_t cb = NULL;
+    int32_t err = CY_E_WRONG_ARGS;
+    bool *pstatus = (bool *)args;
 
-    for(uint32_t i = 0; i < ARRAY_SIZE(ioctl_cb_array); ++i) {
-        if(ioctl_cb_array[i].ioctl_cmd == ioctl_cmd) {
-            cb = ioctl_cb_array[i].cb;
+    do {
+        if(!args) {
+            xlog_tag_error(TAG, "Args is NULL, no memory to store the buzzer status\n");
             break;
+        }
+        if(!pdesc->ops.get) {
+            xlog_tag_error(TAG, "Driver has no get ops\n");
+            break;
+        }
+        *pstatus = pdesc->ops.get();
+        err = CY_EOK;
+    } while(0);
+
+    return err;
+}
+
+static int32_t __ioctl_set_freq(buzzer_describe_t *pdesc, void *args)
+{
+    int32_t err = CY_E_WRONG_ARGS;
+    uint32_t *freq = (uint32_t *)args;
+
+    if(!args) {
+        xlog_tag_error(TAG, "Args format error, can not set buzzer freq\n");
+    } else {
+        if(pdesc->freq != *freq) {
+            pdesc->freq = *freq;
+            if(pdesc->ops.deinit) {
+                pdesc->ops.deinit();
+            }
+            if(pdesc->ops.init) {
+                pdesc->ops.init();
+            }
+        }
+        err = CY_EOK;
+    }
+
+    return err;
+}
+
+static int32_t __ioctl_get_freq(buzzer_describe_t *pdesc, void *args)
+{
+    int32_t err = CY_E_WRONG_ARGS;
+    uint32_t *freq = (uint32_t *)args;
+
+    if(!args) {
+        xlog_tag_error(TAG, "Args format error, can not get buzzer freq\n");
+    } else {
+        *freq = pdesc->freq;
+        err = CY_EOK;
+    }
+
+    return err;
+}
+
+static int32_t __ioctl_set_duty(buzzer_describe_t *pdesc, void *args)
+{
+    int32_t err = CY_EOK;
+    float *duty = (float *)args;
+
+    if(!args) {
+        err = CY_E_WRONG_ARGS;
+        xlog_tag_error(TAG, "Args format error, can not set buzzer duty\n");
+    } else if(pdesc->ops.set_duty) {
+        if(!pdesc->ops.set_duty(*duty)) {
+            xlog_tag_error(TAG, "Set buzzer duty failure\n");
+            err = CY_ERROR;
         }
     }
 
-    return cb;
+    return err;
+}
+
+static int32_t __ioctl_get_duty(buzzer_describe_t *pdesc, void *args)
+{
+    int32_t err = CY_EOK;
+    float *duty = (float *)args;
+
+    if(!args) {
+        err = CY_E_WRONG_ARGS;
+        xlog_tag_error(TAG, "Args format error, can not get buzzer duty\n");
+    } else {
+        *duty = pdesc->duty;
+    }
+
+    return err;
 }
 
 static int32_t buzzer_ioctl(driver_t **pdrv, uint32_t cmd, void *args)
 {
     buzzer_describe_t *pdesc = NULL;
     int32_t retval = CY_E_WRONG_ARGS;
-    ioctl_cb_func_t cb = NULL;
+    int32_t (*cb)(buzzer_describe_t *, void *) = NULL;
 
     assert(pdrv);
     pdesc = container_of(pdrv, device_t, pdrv)->pdesc;
@@ -187,7 +319,7 @@ static int32_t buzzer_ioctl(driver_t **pdrv, uint32_t cmd, void *args)
             xlog_tag_error(TAG, "driver has not bind describe field\n");
             break;
         }
-        if(NULL == (cb = __ioctl_cb_func_find(cmd))) {
+        if(NULL == (cb = protocol_callback_find(cmd, ioctl_cb_array, ARRAY_SIZE(ioctl_cb_array)))) {
             xlog_tag_error(TAG, "driver not support command(%08X)\n", cmd);
             break;
         }

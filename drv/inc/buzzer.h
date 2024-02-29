@@ -37,27 +37,38 @@ extern "C"
 /*---------- macro ----------*/
 #define IOCTL_BUZZER_ON                             (IOCTL_USER_START + 0x00)
 #define IOCTL_BUZZER_OFF                            (IOCTL_USER_START + 0x01)
-#define IOCTL_BUZZER_TOGGLE                         (IOCTL_USER_START + 0x02)
-#define IOCTL_BUZZER_SET_CYCLE                      (IOCTL_USER_START + 0x03)
-#define IOCTL_BUZZER_GET_CYCLE                      (IOCTL_USER_START + 0x04)
+#define IOCTL_BUZZER_TOGGLE_ONCE                    (IOCTL_USER_START + 0x02)
+#define IOCTL_BUZZER_TOGGLE                         (IOCTL_USER_START + 0x03)
+#define IOCTL_BUZZER_SET_TOGGLE                     (IOCTL_USER_START + 0x04)
+#define IOCTL_BUZZER_GET_TOGGLE                     (IOCTL_USER_START + 0x05)
+#define IOCTL_BUZZER_GET_STATUS                     (IOCTL_USER_START + 0x06)
+#define IOCTL_BUZZER_SET_FREQ                       (IOCTL_USER_START + 0x07)
+#define IOCTL_BUZZER_GET_FREQ                       (IOCTL_USER_START + 0x09)
+#define IOCTL_BUZZER_SET_DUTY                       (IOCTL_USER_START + 0x0A)
+#define IOCTL_BUZZER_GET_DUTY                       (IOCTL_USER_START + 0x0B)
 
-#define BUZZER_CYCLE_COUNT_MAX                      (0xFFFFFFFF)
+#define BUZZER_TOGGLE_COUNT_MAX                     (0xFFFFFFFF)
 
 /*---------- type define ----------*/
 typedef struct {
-    uint32_t cycle_time;
-    uint32_t cycle_count;
-} buzzer_cycle_t;
+    uint32_t millisecond;
+    uint32_t count;
+} buzzer_toggle_t;
+
+typedef struct {
+    bool (*init)(void);
+    void (*deinit)(void);
+    bool (*set_duty)(float duty);
+    bool (*ctrl)(bool on);
+    bool (*toggle)(void);
+    bool (*get)(void);
+} buzzer_ops_t;
 
 typedef struct {
     uint32_t freq;
-    buzzer_cycle_t cycle;
-    struct {
-        bool (*init)(void);
-        void (*deinit)(void);
-        void (*ctrl)(bool on);
-        void (*toggle)(void);
-    } ops;
+    float duty;
+    buzzer_toggle_t toggle;
+    buzzer_ops_t ops;
 } buzzer_describe_t;
 
 /*---------- variable prototype ----------*/
