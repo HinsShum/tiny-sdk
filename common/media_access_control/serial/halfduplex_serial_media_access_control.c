@@ -291,7 +291,7 @@ void halfduplex_serial_media_access_controller_delete(serial_mac_t self)
 
 void halfduplex_serial_mac_set_transmitter(serial_mac_t self, const uint8_t *pbuf, uint32_t length)
 {
-    trans_state_t old_state = self->transmitter.state;
+    trans_state_t old_state = (self->transmitter.state == TRANS_BUSY ? TRANS_WAIT_ACK : self->transmitter.state);
 
     assert(self);
     assert(self->ops.serial_post);
