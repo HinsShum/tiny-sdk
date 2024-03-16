@@ -278,7 +278,7 @@ void mia_mac_set_transmitter(mia_mac_t self, const uint8_t *pbuf, uint32_t lengt
     assert(self);
     assert(self->phy);
     if(!self->bus.fault && length <= ARRAY_SIZE(self->resp)) {
-        old_state = self->transmitter.state;
+        old_state = (self->transmitter.state == TRANS_BUSY ? TRANS_WAIT_ACK : self->transmitter.state);
         _mac_bus_lock(self);
         self->transmitter.state = TRANS_BUSY;
         memcpy(self->resp, pbuf, length);

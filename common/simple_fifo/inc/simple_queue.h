@@ -40,7 +40,7 @@ typedef struct simple_queue *simple_queue_t;
 /*---------- variable prototype ----------*/
 /*---------- function prototype ----------*/
 /**
- * @brief Create a simple queue instance, and return ad handle by which the 
+ * @brief Create a simple queue instance, and return a handle by which the 
  * created queue can be referenced.
  * @param member_count Number of queue member.
  * @param member_size Size of queue member.
@@ -52,7 +52,7 @@ typedef struct simple_queue *simple_queue_t;
 extern simple_queue_t simple_queue_new(uint32_t member_count, uint32_t member_size);
 
 /**
- * @brief Delete a quque that was previously created using the simple_queue_new() API
+ * @brief Delete a queue that was previously created using the simple_queue_new() API
  * function.
  * @param self The handle of the queue being deleted.
  * 

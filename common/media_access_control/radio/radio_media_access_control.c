@@ -302,9 +302,8 @@ void radio_mac_delete(radio_mac_t self)
 
 static inline void _set_transmitter(radio_mac_t self, const uint8_t *pbuf, uint32_t length)
 {
-    trans_state_t old_state = TRANS_IDLE;
+    trans_state_t old_state = (self->transmitter.state == TRANS_BUSY ? TRANS_WAIT_ACK : self->transmitter.state);
 
-    old_state = self->transmitter.state;
     _mac_bus_lock(self);
     self->transmitter.state = TRANS_BUSY;
     self->ops.radio_post(pbuf, length);

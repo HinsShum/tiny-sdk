@@ -299,9 +299,17 @@ void soft_timer_tick(void)
         tcb->remaining = 0;
         list_for_each_entry_safe(tcb, next_tcb, struct timer_tcb, &_timer_active_list, node) {
             if(tcb->remaining == 0) {
-                tcb->ops.remove(tcb);
-                tcb->ops.insert(tcb);
-                continue;
+                /* When the current timer expires and is being processed in a systick interrupt,
+                 * a higher priority interrupt occurs and happens to execute soft_timer_start(),
+                 * soft_timer_restart() or soft_timer_change_period() to reset this timer it will
+                 * cause the remove callback pointer to be NULL.
+                 */
+                if(tcb->ops.remove) {
+                    tcb->ops.remove(tcb);
+                    tcb->ops.insert(tcb);
+                    continue;
+                }
+                break;
             }
             _timer_count = tcb->remaining;
             break;
