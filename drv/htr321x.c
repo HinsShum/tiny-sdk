@@ -80,28 +80,28 @@ typedef enum
     HTR321x_RESET_REG = 0X4F,
 } htr321x_register_adr;
 
-volatile uint8_t temp_buf[MAX] = {0};
+volatile uint8_t temp_buf[MAX] = { 0 };
 
 /*---------- function prototype ----------*/
-static void    htr321x_config_for_myself(driver_t **pdrv, void *buf, uint32_t offset, uint32_t length);
-static int32_t htr321x_open(driver_t **pdrv);
-static void    htr321x_close(driver_t **pdrv);
-static int32_t htr321x_write(driver_t **pdrv, void *buf, uint32_t offset, uint32_t length);
-static int32_t htr321x_ioctl(driver_t **pdrv, uint32_t cmd, void *args);
+static void    htr321x_config_for_myself(driver_t** pdrv, void* buf, uint32_t offset, uint32_t length);
+static int32_t htr321x_open(driver_t** pdrv);
+static void    htr321x_close(driver_t** pdrv);
+static int32_t htr321x_write(driver_t** pdrv, void* buf, uint32_t offset, uint32_t length);
+static int32_t htr321x_ioctl(driver_t** pdrv, uint32_t cmd, void* args);
 
-static int32_t _ioctl_htr321x_update(driver_t **pdrv, htr321x_describe *pdesc, void *args);
+static int32_t _ioctl_htr321x_update(driver_t** pdrv, htr321x_describe* pdesc, void* args);
 
 DRIVER_DEFINED(htr321x, htr321x_open, htr321x_close, htr321x_write, NULL, htr321x_ioctl, NULL);
 /*---------- type define ----------*/
-typedef int32_t (*htr321x_cb_func_t)(driver_t **pdrv, htr321x_describe *pdesc, void *args);
+typedef int32_t(*htr321x_cb_func_t)(driver_t** pdrv, htr321x_describe* pdesc, void* args);
 typedef struct
 {
     uint32_t          htr321x_cb_cmd;
     htr321x_cb_func_t cb;
 } htr321x_cb;
 static htr321x_cb ioctl_array[] =
-    {
-        {IOCTL_HTR321x_UPDATA, _ioctl_htr321x_update},
+{
+    {IOCTL_HTR321x_UPDATA, _ioctl_htr321x_update},
 };
 /*---------- function  local driver  ----------*/
 static htr321x_register_adr outward_transform_special(uint32_t num)
@@ -115,30 +115,30 @@ static htr321x_register_adr outward_transform_special(uint32_t num)
     return Tnum;
 }
 
-static void htr321x_init(driver_t **pdrv)
+static void htr321x_init(driver_t** pdrv)
 {
-    htr321x_config_for_myself(pdrv, (uint8_t *)temp_buf, HTR321x_RESET_REG, 1);
+    htr321x_config_for_myself(pdrv, (uint8_t*)temp_buf, HTR321x_RESET_REG, 1);
     temp_buf[0] = 1;
-    htr321x_config_for_myself(pdrv, (uint8_t *)temp_buf, HTR321x_SHUTDOWN, 1);
-    memset((uint8_t *)temp_buf, 1, MAX);
-    htr321x_config_for_myself(pdrv, (uint8_t *)temp_buf, HTR321x_LED0_SWITCH, MAX);
+    htr321x_config_for_myself(pdrv, (uint8_t*)temp_buf, HTR321x_SHUTDOWN, 1);
+    memset((uint8_t*)temp_buf, 1, MAX);
+    htr321x_config_for_myself(pdrv, (uint8_t*)temp_buf, HTR321x_LED0_SWITCH, MAX);
     temp_buf[0] = 1;
-    htr321x_config_for_myself(pdrv, (uint8_t *)temp_buf, HTR321x_LED_FREQUENCY, 1);
+    htr321x_config_for_myself(pdrv, (uint8_t*)temp_buf, HTR321x_LED_FREQUENCY, 1);
     temp_buf[0] = 0;
-    htr321x_config_for_myself(pdrv, (uint8_t *)temp_buf, HTR321x_ALL_SWITCH, 1);
+    htr321x_config_for_myself(pdrv, (uint8_t*)temp_buf, HTR321x_ALL_SWITCH, 1);
 
-    memset((uint8_t *)temp_buf, 0, MAX);
-    htr321x_config_for_myself(pdrv, (uint8_t *)temp_buf, HTR321x_LEDPWM0, MAX);
-    htr321x_config_for_myself(pdrv, (uint8_t *)temp_buf, HTR321x_PWM_UPDATA, 1);
+    memset((uint8_t*)temp_buf, 0, MAX);
+    htr321x_config_for_myself(pdrv, (uint8_t*)temp_buf, HTR321x_LEDPWM0, MAX);
+    htr321x_config_for_myself(pdrv, (uint8_t*)temp_buf, HTR321x_PWM_UPDATA, 1);
 }
 
 /*---------- function  driver  for  app ----------*/
 
-static int32_t htr321x_open(driver_t **pdrv)
+static int32_t htr321x_open(driver_t** pdrv)
 {
-    htr321x_describe *pdesc = NULL;
+    htr321x_describe* pdesc = NULL;
     int32_t           retval = CY_E_WRONG_ARGS;
-    void             *temp_bus = NULL;
+    void* temp_bus = NULL;
     pdesc = container_of(pdrv, device_t, pdrv)->pdesc;
     assert(pdesc);
     do
@@ -172,9 +172,9 @@ static int32_t htr321x_open(driver_t **pdrv)
     } while (0);
     return retval;
 }
-static void htr321x_close(driver_t **pdrv)
+static void htr321x_close(driver_t** pdrv)
 {
-    htr321x_describe *pdesc = NULL;
+    htr321x_describe* pdesc = NULL;
     assert(pdrv);
     pdesc = container_of(pdrv, device_t, pdrv)->pdesc;
     if (pdesc)
@@ -188,14 +188,14 @@ static void htr321x_close(driver_t **pdrv)
     }
 }
 // buf
-static int32_t htr321x_write(driver_t **pdrv, void *buf, uint32_t offset, uint32_t length)
+static int32_t htr321x_write(driver_t** pdrv, void* buf, uint32_t offset, uint32_t length)
 {
-    i2c_bus_msg_t     msg = {0};
-    htr321x_describe *pdesc = NULL;
+    i2c_bus_msg_t     msg = { 0 };
+    htr321x_describe* pdesc = NULL;
     uint32_t          actual_len = 0;
     int32_t           result = CY_EOK;
     uint32_t          address = 0;
-    uint8_t           temp_memory_addr[2] = {0};
+    uint8_t           temp_memory_addr[2] = { 0 };
 
     assert(pdrv);
     assert(buf);
@@ -235,6 +235,8 @@ static int32_t htr321x_write(driver_t **pdrv, void *buf, uint32_t offset, uint32
         if (CY_EOK != result)
         {
             xlog_tag_error(TAG, "write failed\n");
+            pdesc->deinit();
+            pdesc->init();
             break;
         }
     } while (0);
@@ -242,12 +244,12 @@ static int32_t htr321x_write(driver_t **pdrv, void *buf, uint32_t offset, uint32
 }
 
 /*************************** cb_func_t *************************/
-static void htr321x_config_for_myself(driver_t **pdrv, void *buf, uint32_t offset, uint32_t length)
+static void htr321x_config_for_myself(driver_t** pdrv, void* buf, uint32_t offset, uint32_t length)
 {
-    i2c_bus_msg_t     msg = {0};
-    uint8_t           temp_memory_addr[2] = {0};
+    i2c_bus_msg_t     msg = { 0 };
+    uint8_t           temp_memory_addr[2] = { 0 };
     int32_t           result = CY_EOK;
-    htr321x_describe *pdesc = NULL;
+    htr321x_describe* pdesc = NULL;
     assert(pdrv);
 
     pdesc = container_of(pdrv, device_t, pdrv)->pdesc;
@@ -292,13 +294,13 @@ static void htr321x_config_for_myself(driver_t **pdrv, void *buf, uint32_t offse
         }
     } while (0);
 }
-static int32_t _ioctl_htr321x_update(driver_t **pdrv, htr321x_describe *pdesc, void *args)
+static int32_t _ioctl_htr321x_update(driver_t** pdrv, htr321x_describe* pdesc, void* args)
 {
     int32_t          retval = CY_E_WRONG_ARGS;
-    volatile uint8_t temp_buff[1] = {0};
+    volatile uint8_t temp_buff[1] = { 0 };
     int32_t          actual_len = 0;
     retval = CY_EOK;
-    htr321x_write(pdrv, (uint8_t *)temp_buff, HTR321x_PWM_UPDATA, 1);
+    htr321x_write(pdrv, (uint8_t*)temp_buff, HTR321x_PWM_UPDATA, 1);
     return retval;
 }
 
@@ -317,9 +319,9 @@ static htr321x_cb_func_t _ioctl_cb_func_find(uint32_t ioctl_cmd)
     return cb;
 }
 /*************************** cb_func_t end *************************/
-static int32_t htr321x_ioctl(driver_t **pdrv, uint32_t cmd, void *args)
+static int32_t htr321x_ioctl(driver_t** pdrv, uint32_t cmd, void* args)
 {
-    htr321x_describe *pdesc = NULL;
+    htr321x_describe* pdesc = NULL;
     int32_t           retval = CY_E_WRONG_ARGS;
     htr321x_cb_func_t cb = NULL;
     assert(pdrv);

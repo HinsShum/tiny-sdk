@@ -61,7 +61,7 @@ extern "C"
     struct htr321x_event
     {
         enum
-        {
+        {           
             IOCTL_HTR321x_UPDATA,
             IOCTL_HTR321x_NULL
         } type;
