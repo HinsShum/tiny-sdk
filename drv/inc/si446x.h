@@ -202,6 +202,22 @@ extern "C"
  */
 #define IOCTL_SI446X_CLEAR_INTERRUPT                        (IOCTL_USER_START + 0x13)
 
+/**
+ * @brief Get SI446x interrupt flag
+ * @param Args is pointer of si446x_interrupt_t
+ * @retval If get success, it will return CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_GET_INTERRUPT_FLAG                     (IOCTL_USER_START + 0x14)
+
+/**
+ * @brief Set SI446x interrupt flag
+ * @param Args is pointer of si446x_interrupt_t
+ * @retval If set success, it will return CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_SET_INTERRUPT_FLAG                     (IOCTL_USER_START + 0x15)
+
 /*---------- type define ----------*/
 typedef enum {
     SI446X_GPIO_TYPE_UNDEFINE,
@@ -427,6 +443,46 @@ typedef enum {
     SI446X_TX_TYPE_NORMAL,
     SI446X_TX_TYPE_LONG_PREAMBLE,
 } si446x_tx_type_t;
+
+typedef struct {
+    enum {
+        SI446X_INT_PH,
+        SI446X_INT_MODEM,
+        SI446X_INT_CHIP,
+    } type;
+    union {
+        struct {
+            uint8_t rx_fifo_almost_full_en:1;
+            uint8_t tx_fifo_almost_empty_en:1;
+            uint8_t alt_crc_error_en:1;
+            uint8_t crc_error_en:1;
+            uint8_t packet_rx_en:1;
+            uint8_t packet_sent_en:1;
+            uint8_t filter_miss_en:1;
+            uint8_t filter_match_en:1;
+        } packet_handler;
+        struct {
+            uint8_t sync_detect_en:1;
+            uint8_t preamble_detect_en:1;
+            uint8_t invalid_preamble_en:1;
+            uint8_t rssi_en:1;
+            uint8_t rssi_jump_en:1;
+            uint8_t invalid_sycn_en:1;
+            uint8_t postamble_detect_en:1;
+            uint8_t rssi_latch_en:1;
+        } modem;
+        struct {
+            uint8_t wut_en:1;
+            uint8_t low_batt_en:1;
+            uint8_t chip_ready_en:1;
+            uint8_t cmd_error_en:1;
+            uint8_t state_change_en:1;
+            uint8_t fifo_underflow_overflow_error_en:1;
+            uint8_t cal_en:1;
+            uint8_t reserve:1;
+        } chip;
+    };
+} si446x_interrupt_t;
 
 typedef struct {
     si446x_configure_t configure;

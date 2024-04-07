@@ -464,6 +464,8 @@ static int32_t _ioctl_get_rssi_thresold(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_current_state(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_clear_interrupt(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_get_interrupt_flag(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_set_interrupt_flag(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(si446x, si446x_open, si446x_close, si446x_write, si446x_read, si446x_ioctl, si446x_irq_handler);
@@ -488,6 +490,8 @@ static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_GET_CURRENT_STATE, _ioctl_get_current_state},
     {IOCTL_SI446X_READ_IRQ_PIN, _ioctl_read_irq_pin},
     {IOCTL_SI446X_CLEAR_INTERRUPT, _ioctl_clear_interrupt},
+    {IOCTL_SI446X_GET_INTERRUPT_FLAG, _ioctl_get_interrupt_flag},
+    {IOCTL_SI446X_SET_INTERRUPT_FLAG, _ioctl_set_interrupt_flag},
 };
 
 /*---------- function ----------*/
@@ -1688,6 +1692,66 @@ static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args)
 static int32_t _ioctl_clear_interrupt(si446x_describe_t *pdesc, void *args)
 {
     return (_get_int_status(pdesc, 0, 0, 0) ? CY_EOK : CY_ERROR);
+}
+
+static int32_t _ioctl_get_interrupt_flag(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+    si446x_interrupt_t *param = (si446x_interrupt_t *)args;
+
+    if(args) {
+        if(param->type == SI446X_INT_PH) {
+            _get_property(pdesc, GRP_INT_CTL, INT_CTL_PH_ENABLE, (uint8_t *)&param->packet_handler, 1);
+        } else if(param->type == SI446X_INT_MODEM) {
+            _get_property(pdesc, GRP_INT_CTL, INT_CTL_MODEM_ENABLE, (uint8_t *)&param->modem, 1);
+        } else {
+            _get_property(pdesc, GRP_INT_CTL, INT_CTL_CHIP_ENABLE, (uint8_t *)&param->chip, 1);
+        }
+        retval = CY_EOK;
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_set_interrupt_flag(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_ERROR;
+    si446x_interrupt_t *param = (si446x_interrupt_t *)args;
+    uint8_t int_ctl = 0;
+
+    if(args) {
+        _get_property(pdesc, GRP_INT_CTL, INT_CTL_ENABLE, &int_ctl, sizeof(int_ctl));
+        if(param->type == SI446X_INT_PH) {
+            _set_property(pdesc, GRP_INT_CTL, INT_CTL_PH_ENABLE, (uint8_t *)&param->packet_handler, 1);
+            if(*((uint8_t *)&param->packet_handler) && !(int_ctl & PH_INT_PEND)) {
+                int_ctl |= PH_INT_PEND;
+                _set_property(pdesc, GRP_INT_CTL, INT_CTL_ENABLE, &int_ctl, sizeof(int_ctl));
+            } else if(!(*((uint8_t *)&param->packet_handler)) && (int_ctl & PH_INT_PEND)) {
+                int_ctl &= (~PH_INT_PEND);
+                _set_property(pdesc, GRP_INT_CTL, INT_CTL_ENABLE, &int_ctl, sizeof(int_ctl));
+            }
+        } else if(param->type == SI446X_INT_MODEM) {
+            _set_property(pdesc, GRP_INT_CTL, INT_CTL_MODEM_ENABLE, (uint8_t *)&param->modem, 1);
+            if(*((uint8_t *)&param->modem) && !(int_ctl & MODEM_INT_PEND)) {
+                int_ctl |= MODEM_INT_PEND;
+                _set_property(pdesc, GRP_INT_CTL, INT_CTL_ENABLE, &int_ctl, sizeof(int_ctl));
+            } else if(!(*((uint8_t *)&param->modem)) && (int_ctl & MODEM_INT_PEND)) {
+                int_ctl &= (~MODEM_INT_PEND);
+                _set_property(pdesc, GRP_INT_CTL, INT_CTL_ENABLE, &int_ctl, sizeof(int_ctl));
+            }
+        } else {
+            _set_property(pdesc, GRP_INT_CTL, INT_CTL_CHIP_ENABLE, (uint8_t *)&param->chip, 1);
+            if(*((uint8_t *)&param->chip) && !(int_ctl & CHIP_INT_PEND)) {
+                int_ctl |= CHIP_INT_PEND;
+                _set_property(pdesc, GRP_INT_CTL, INT_CTL_ENABLE, &int_ctl, sizeof(int_ctl));
+            } else if(!(*((uint8_t *)&param->chip)) && (int_ctl & CHIP_INT_PEND)) {
+                int_ctl &= (~CHIP_INT_PEND);
+                _set_property(pdesc, GRP_INT_CTL, INT_CTL_ENABLE, &int_ctl, sizeof(int_ctl));
+            }
+        }
+    }
+
+    return retval;
 }
 
 static ioctl_cb_func_t _ioctl_cb_func_find(uint32_t cmd)
