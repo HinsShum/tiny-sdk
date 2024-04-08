@@ -261,7 +261,8 @@ static uint32_t __attribute__((format(printf, 1, 0))) _vprint(const char *fmt, v
                 char time_str[30] = {0};
                 _xlog.ops.get_timestamp(&utc);
                 ptm = localtime(&utc);
-                strftime(time_str, sizeof(time_str), "[%Y-%m-%d %H:%M:%S]", ptm);
+                snprintf(time_str, sizeof(time_str) - 1, "[%04d-%02d-%02d %02d:%02d:%02d]",
+                        ptm->tm_year + 1900, ptm->tm_mon + 1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
                 len = strlen(time_str);
                 for(uint32_t i = 0; i < len; ++i) {
                     emit_log_char(time_str[i]);
