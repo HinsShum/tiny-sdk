@@ -34,6 +34,10 @@
 #ifndef CONFIG_XLOG_BUF_SHIFT
 #define CONFIG_XLOG_BUF_SHIFT               (10)
 #endif
+#ifndef CONFIG_XLOG_FORMAT_BUF_SHIFT
+#define CONFIG_XLOG_FORMAT_BUF_SHIFT        (9)
+#endif
+#define __FORMAT_BUF_LEN                    (1UL << CONFIG_XLOG_FORMAT_BUF_SHIFT)
 #define __LOG_BUF_LEN                       (1UL << CONFIG_XLOG_BUF_SHIFT)
 #define LOG_BUF_MASK                        (__LOG_BUF_LEN - 1)
 #define LOG_BUF(off)                        (log_buf[(off) & LOG_BUF_MASK])
@@ -61,7 +65,7 @@ static uint32_t log_start = 0;                      /*<< Index into log_buf: nex
 static uint32_t log_end = 0;                        /*<< Index into log_buf: most-recenrly-written + 1 */
 static char log_buf[__LOG_BUF_LEN];
 static bool next_text_line = true;
-static char vprintf_buf[__LOG_BUF_LEN];
+static char vprintf_buf[__FORMAT_BUF_LEN];
 static char log_level_char[] = {
     [0] = 'E',
     [1] = 'W',
@@ -184,9 +188,7 @@ static void _call_console(uint32_t start, uint32_t end)
 }
 
 static bool _acquire_console(void)
-{
-    __unlock();
-    
+{   
     return __acquire_console();
 }
 
@@ -286,6 +288,7 @@ static uint32_t __attribute__((format(printf, 1, 0))) _vprint(const char *fmt, v
     if(_acquire_console()) {
         _print_and_release_console();
     }
+    __unlock();
 
     return printed_len;
 }
