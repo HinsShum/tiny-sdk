@@ -54,7 +54,7 @@ extern "C"
 #else
 #define assert(expr)                  	do { \
                                             if(!(expr)) { \
-                                                xlog_error("Assert in %s:%d\n", __FILE__, __LINE__); \
+                                                xlog_error("Assert in %s:%d\n", __FILE_NAME__, __LINE__); \
                                                 for(;;); \
                                             } \
                                         } while(0)
