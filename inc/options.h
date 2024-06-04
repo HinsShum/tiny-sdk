@@ -52,6 +52,9 @@ extern "C"
 #ifdef NDEBUG
 #define assert(expr)                    ((void)0U)
 #else
+#ifndef __FILE_NAME__
+#define __FILE_NAME__                   __FILE__
+#endif
 #define assert(expr)                  	do { \
                                             if(!(expr)) { \
                                                 xlog_error("Assert in %s:%d\n", __FILE_NAME__, __LINE__); \
