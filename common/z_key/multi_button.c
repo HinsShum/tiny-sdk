@@ -29,7 +29,7 @@
     handle->cb[ev]((Button *)handle)
 
 // button handle list head.
-static struct Button *head_handle = NULL;
+static struct Button* head_handle = NULL;
 
 /**
  * @brief  Initializes the button struct handle.
@@ -38,7 +38,7 @@ static struct Button *head_handle = NULL;
  * @param  active_level: pressed GPIO level.
  * @retval None
  */
-void button_init(struct Button *handle, uint8_t (*pin_level)(), uint8_t active_level, uint8_t keyid)
+void button_init(struct Button* handle, uint8_t(*pin_level)(), uint8_t active_level, uint8_t keyid)
 {
     assert(handle);
     memset(handle, 0, sizeof(struct Button));
@@ -56,7 +56,7 @@ void button_init(struct Button *handle, uint8_t (*pin_level)(), uint8_t active_l
  * @param  cb: callback function.
  * @retval None
  */
-void button_attach(struct Button *handle, PressEvent event, BtnCallback cb)
+void button_attach(struct Button* handle, PressEvent event, BtnCallback cb)
 {
     handle->cb[event] = cb;
 }
@@ -66,7 +66,7 @@ void button_attach(struct Button *handle, PressEvent event, BtnCallback cb)
  * @param  handle: the button handle strcut.
  * @retval button event.
  */
-PressEvent get_button_event(struct Button *handle)
+PressEvent get_button_event(struct Button* handle)
 {
     assert(handle);
     return (PressEvent)(handle->event);
@@ -76,7 +76,7 @@ PressEvent get_button_event(struct Button *handle)
  * @param  handle: the button handle strcut.
  * @retval button key_id.
  */
-unsigned char get_button_keyid(struct Button *handle)
+unsigned char get_button_keyid(struct Button* handle)
 {
     assert(handle);
     return (unsigned char)(handle->key_id);
@@ -87,7 +87,7 @@ unsigned char get_button_keyid(struct Button *handle)
  * @param  handle: the button handle strcut.
  * @retval None
  */
-void button_handler(struct Button *handle)
+void button_handler(struct Button* handle)
 {
     uint8_t read_gpio_level = handle->hal_button_Level();
     assert(handle);
@@ -151,7 +151,7 @@ void button_handler(struct Button *handle)
             handle->event = (uint8_t)PRESS_DOWN;
             EVENT_CB(PRESS_DOWN);
             handle->repeat++;
-            handle->event = (uint8_t)PRESS_REPEAT; // Ìí¼Ó
+            handle->event = (uint8_t)PRESS_REPEAT; // ï¿½ï¿½ï¿½ï¿½
             EVENT_CB(PRESS_REPEAT);                // repeat hit
             handle->ticks = 0;
             handle->state = 3;
@@ -187,6 +187,12 @@ void button_handler(struct Button *handle)
                 handle->state = 0;
             }
         }
+        else if (handle->ticks > LONG_TICKS)
+        {
+            handle->event = (uint8_t)LONG_PRESS_START;
+            EVENT_CB(LONG_PRESS_START);
+            handle->state = 5;
+        }
         break;
 
     case 5:
@@ -211,9 +217,9 @@ void button_handler(struct Button *handle)
  * @param  handle: target handle strcut.
  * @retval 0: succeed. -1: already exist.
  */
-int button_start(struct Button *handle)
+int button_start(struct Button* handle)
 {
-    struct Button *target = head_handle;
+    struct Button* target = head_handle;
     while (target)
     {
         if (target == handle)
@@ -230,12 +236,12 @@ int button_start(struct Button *handle)
  * @param  handle: target handle strcut.
  * @retval None
  */
-void button_stop(struct Button *handle)
+void button_stop(struct Button* handle)
 {
-    struct Button **curr;
+    struct Button** curr;
     for (curr = &head_handle; *curr;)
     {
-        struct Button *entry = *curr;
+        struct Button* entry = *curr;
         if (entry == handle)
         {
             *curr = entry->next;
@@ -252,7 +258,7 @@ void button_stop(struct Button *handle)
  */
 void button_ticks()
 {
-    struct Button *target;
+    struct Button* target;
     for (target = head_handle; target; target = target->next)
     {
         button_handler(target);
