@@ -95,7 +95,7 @@ typedef struct {
 /*---------- variable ----------*/
 DRIVER_DEFINED(fm13dt160, fm13dt160_open, fm13dt160_close, fm13dt160_write, fm13dt160_read, fm13dt160_ioctl, NULL);
 
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_FM13DT160_CLEAR_IRQ, _ioctl_clear_interrupt},
     {IOCTL_FM13DT160_INIT_REGFILE, _ioctl_initial_regfile}
 };

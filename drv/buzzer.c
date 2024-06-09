@@ -51,8 +51,7 @@ static int32_t __ioctl_get_duty(buzzer_describe_t *pdesc, void *args);
 /*---------- type define ----------*/
 /*---------- variable ----------*/
 DRIVER_DEFINED(buzzer, buzzer_open, buzzer_close, NULL, NULL, buzzer_ioctl, NULL);
-
-static struct protocol_callback ioctl_cb_array[] = {
+const static struct protocol_callback ioctl_cb_array[] = {
     {IOCTL_BUZZER_ON, __ioctl_turn_on},
     {IOCTL_BUZZER_OFF, __ioctl_turn_off},
     {IOCTL_BUZZER_TOGGLE, __ioctl_toggle},
@@ -319,7 +318,7 @@ static int32_t buzzer_ioctl(driver_t **pdrv, uint32_t cmd, void *args)
             xlog_tag_error(TAG, "driver has not bind describe field\n");
             break;
         }
-        if(NULL == (cb = protocol_callback_find(cmd, ioctl_cb_array, ARRAY_SIZE(ioctl_cb_array)))) {
+        if(NULL == (cb = protocol_callback_find(cmd, (void *)ioctl_cb_array, ARRAY_SIZE(ioctl_cb_array)))) {
             xlog_tag_error(TAG, "driver not support command(%08X)\n", cmd);
             break;
         }

@@ -60,8 +60,7 @@ typedef struct {
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(at24cxx, at24cxx_open, at24cxx_close, at24cxx_write, at24cxx_read, at24cxx_ioctl, NULL);
-
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_DEVICE_POWER_ON, _ioctl_power_on},
     {IOCTL_DEVICE_POWER_OFF, _ioctl_power_off},
     {IOCTL_FLASH_ERASE_BLOCK, _ioctl_erase_block},

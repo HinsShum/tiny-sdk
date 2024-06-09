@@ -86,7 +86,7 @@ typedef struct {
 /*---------- variable ----------*/
 DRIVER_DEFINED(fm25qxx, fm25qxx_open, fm25qxx_close, fm25qxx_write, fm25qxx_read, fm25qxx_ioctl, NULL);
 
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_FLASH_ERASE_BLOCK, _ioctl_erase_block},
     {IOCTL_FLASH_ERASE_CHIP, _ioctl_erase_chip},
     {IOCTL_FLASH_CHECK_ADDR_IS_BLOCK_START, _ioctl_block_start_check},

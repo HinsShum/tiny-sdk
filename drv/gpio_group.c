@@ -50,7 +50,7 @@ typedef struct
 /*---------- variable ----------*/
 DRIVER_DEFINED(gpio_group, gpio_open, gpio_close, NULL, NULL, gpio_ioctl, NULL);
 
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_GROUP_GET, __ioctl_get},
     {IOCTL_GROUP_SET, __ioctl_set},
     {IOCTL_GROUP_POLL_CHECK, __ioctl_user_funtion},

@@ -54,7 +54,7 @@ typedef struct {
 /*---------- variable ----------*/
 DRIVER_DEFINED(infrared, __open, __close, NULL, NULL, __ioctl, NULL);
 
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_INFRARED_TURN_ON, __ioctl_turn_on},
     {IOCTL_INFRARED_TURN_OFF, __ioctl_turn_off},
     {IOCTL_INFRARED_TOGGLE, __ioctl_toggle},

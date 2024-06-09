@@ -321,7 +321,7 @@ typedef struct {
 /*---------- variable ----------*/
 DRIVER_DEFINED(ms523, ms523_open, ms523_close, NULL, NULL, ms523_ioctl, NULL);
 
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_MS523_PCD_HALT, __ioctl_pcd_halt},
     {IOCTL_MS523_PCD_REQUEST_IDLE, __ioctl_pcd_request_idle},
     {IOCTL_MS523_PCD_REQUEST_ALL, __ioctl_pcd_request_all},

@@ -60,7 +60,7 @@ static int32_t _ioctl_bus_reset(w1_bus_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(w1_bus, w1_bus_open, w1_bus_close, w1_bus_write, w1_bus_read, w1_bus_ioctl, NULL);
-static ioctl_cb_t _ioctl_cb_array[] = {
+const static ioctl_cb_t _ioctl_cb_array[] = {
     {IOCTL_W1_BUS_SLOT_CONFIG, _ioctl_slot_config},
     {IOCTL_W1_BUS_GET_ROMID, _ioctl_get_romid},
     {IOCTL_W1_BUS_RESET, _ioctl_bus_reset}

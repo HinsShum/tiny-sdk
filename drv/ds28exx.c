@@ -53,7 +53,7 @@ static int32_t _ioctl_compute_read_page_mac(ds28exx_describe_t *pdesc, void *arg
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(ds28exx, ds28exx_open, ds28exx_close, NULL, NULL, ds28exx_ioctl, NULL);
-static ioctl_cb_t _ioctl_cb_array[] = {
+const static ioctl_cb_t _ioctl_cb_array[] = {
     {IOCTL_DS28EXX_GET_ROMID, _ioctl_get_romid},
     {IOCTL_DS28EXX_WRITE_SCRATCHPAD, _ioctl_write_scratchpad},
     {IOCTL_DS28EXX_COMPUTE_READ_PAGE_MAC, _ioctl_compute_read_page_mac}

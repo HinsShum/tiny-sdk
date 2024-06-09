@@ -62,7 +62,7 @@ static int32_t _ioctl_get_data(pat9125el_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(pat9125el, pat9125el_open, pat9125el_close, NULL, NULL, pat9125_ioctl, pat9125el_irq_handler);
-static struct protocol_callback ioctl_cbs[] = {
+const static struct protocol_callback ioctl_cbs[] = {
     {IOCTL_PAT9125EL_GET_DATA, _ioctl_get_data},
     {IOCTL_PAT9125EL_SET_IRQ_HANDLER, _ioctl_set_irq_handler}
 };
@@ -259,7 +259,7 @@ static int32_t pat9125_ioctl(driver_t **pdrv, uint32_t cmd, void *args)
             xlog_tag_error(TAG, "No describe field\n");
             break;
         }
-        cb = protocol_callback_find(cmd, ioctl_cbs, ARRAY_SIZE(ioctl_cbs));
+        cb = protocol_callback_find(cmd, (void *)ioctl_cbs, ARRAY_SIZE(ioctl_cbs));
         if(!cb) {
             xlog_tag_error(TAG, "Not support this command(%08X)\n", cmd);
             break;

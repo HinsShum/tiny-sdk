@@ -115,7 +115,7 @@ static int32_t _ioctl_set_interrupt_handler(a71x9_describe_t *pdesc, void *args)
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(a71x9, a71x9_open, a71x9_close, a71x9_write, a71x9_read, a71x9_ioctl, a71x9_irq_handler);
-static struct protocol_callback ioctl_cbs[] = {
+const static struct protocol_callback ioctl_cbs[] = {
     {IOCTL_A71X9_REINITIALIZE, _ioctl_reinitialize},
     {IOCTL_A71X9_START_RECEIVING, _ioctl_start_receiving},
     {IOCTL_A71X9_CLEAR_RECEIVER_FIFO, _ioctl_clear_receive_fifo},
@@ -588,7 +588,7 @@ static int32_t a71x9_ioctl(driver_t **pdrv, uint32_t cmd, void *args)
         if(!pdesc) {
             break;
         }
-        cb = protocol_callback_find(cmd, ioctl_cbs, ARRAY_SIZE(ioctl_cbs));
+        cb = protocol_callback_find(cmd, (void *)ioctl_cbs, ARRAY_SIZE(ioctl_cbs));
         if(!cb) {
             break;
         }

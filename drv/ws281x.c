@@ -45,7 +45,7 @@ static int32_t _ioctl_clear_data(ws281x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(ws281x, ws281x_open, ws281x_close, ws281x_write, ws281x_read, ws281x_ioctl, ws281x_irq_handler);
-static struct protocol_callback ioctl_cbs[] = {
+const static struct protocol_callback ioctl_cbs[] = {
     {IOCTL_WS281X_REFRESH, _ioctl_refresh},
     {IOCTL_WS281X_GET_INFO, _ioctl_get_info},
     {IOCTL_WS281X_CLEAR_DATA, _ioctl_clear_data},
@@ -180,7 +180,7 @@ static int32_t ws281x_ioctl(driver_t **pdrv, uint32_t cmd, void *args)
         if(!pdesc) {
             break;
         }
-        cb = protocol_callback_find(cmd, ioctl_cbs, ARRAY_SIZE(ioctl_cbs));
+        cb = protocol_callback_find(cmd, (void *)ioctl_cbs, ARRAY_SIZE(ioctl_cbs));
         if(!cb) {
             break;
         }

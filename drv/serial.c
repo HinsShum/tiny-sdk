@@ -59,7 +59,7 @@ DRIVER_DEFINED(serial, serial_open, serial_close, serial_write, NULL, serial_ioc
 
 /* define serial ioctl functions
  */
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_SERIAL_GET_COMPORT, _ioctl_serial_get_comport},
     {IOCTL_SERIAL_SET_IRQ_HANDLER, _ioctl_serial_set_irq_handler},
     {IOCTL_SERIAL_SET_DIRECTION, _ioctl_serial_set_direction},

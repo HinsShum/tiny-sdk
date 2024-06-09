@@ -52,7 +52,7 @@ static int32_t _ioctl_get_duty_raw_max(pwmc_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(pwmc, pwmc_open, pwmc_close, NULL, NULL, pwmc_ioctl, pwmc_irq_handler);
-static struct protocol_callback ioctl_cbs[] = {
+const static struct protocol_callback ioctl_cbs[] = {
     {IOCTL_PWMC_ENABLE, _ioctl_enable},
     {IOCTL_PWMC_DISABLE, _ioctl_disable},
     {IOCTL_PWMC_GET_FREQ, _ioctl_get_freq},
@@ -337,7 +337,7 @@ static int32_t pwmc_ioctl(driver_t **pdrv, uint32_t cmd, void *args)
         if(!pdesc) {
             break;
         }
-        cb = protocol_callback_find(cmd, ioctl_cbs, ARRAY_SIZE(ioctl_cbs));
+        cb = protocol_callback_find(cmd, (void *)ioctl_cbs, ARRAY_SIZE(ioctl_cbs));
         if(!cb) {
             break;
         }

@@ -469,7 +469,7 @@ static int32_t _ioctl_set_interrupt_flag(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(si446x, si446x_open, si446x_close, si446x_write, si446x_read, si446x_ioctl, si446x_irq_handler);
-static ioctl_cb_t _ioctl_cb_tables[] = {
+const static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_REINITIALIZE, _ioctl_reinitialize},
     {IOCTL_SI446X_SET_RECEIVE_VARIABLE_MAX_LENGTH, _ioctl_set_receive_variable_max_length},
     {IOCTL_SI446X_SET_RECEIVE_FIXED_LENGTH, _ioctl_set_receive_fixed_length},

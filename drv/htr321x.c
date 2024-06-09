@@ -99,7 +99,7 @@ typedef struct
     uint32_t          htr321x_cb_cmd;
     htr321x_cb_func_t cb;
 } htr321x_cb;
-static htr321x_cb ioctl_array[] =
+const static htr321x_cb ioctl_array[] =
     {
         {IOCTL_HTR321x_UPDATA, _ioctl_htr321x_update},
 };

@@ -66,7 +66,7 @@ typedef struct {
 /*---------- variable ----------*/
 DRIVER_DEFINED(i2c_bus, i2c_bus_open, i2c_bus_close, i2c_bus_write_bytes, i2c_bus_read_bytes, i2c_bus_ioctl, NULL);
 
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_I2C_BUS_SET_LOCK_HANDLER, _ioctl_set_lock_handler},
     {IOCTL_I2C_BUS_SET_UNLOCK_HANDER, _ioctl_set_unlock_handler},
     {IOCTL_I2C_BUS_SET_USER_DATA, _ioctl_set_user_data},
@@ -74,7 +74,7 @@ static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_I2C_BUS_UNLOCK, _ioctl_unlock}
 };
 
-static type_cb_t type_cb_array[] = {
+const static type_cb_t type_cb_array[] = {
     {I2C_BUS_TYPE_RANDOM_READ, _i2c_bus_random_read_bytes},
     {I2C_BUS_TYPE_SEQUENTIAL_READ, _i2c_bus_sequential_read_bytes},
     {I2C_BUS_TYPE_WRITE, _i2c_bus_write_bytes}

@@ -62,7 +62,7 @@ DRIVER_DEFINED(flash, flash_open, flash_close, flash_write, flash_read, flash_io
 
 /* define flash ioctl functions
  */
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_FLASH_ERASE_BLOCK, _ioctl_flash_erase_block},
     {IOCTL_FLASH_ERASE_CHIP, _ioctl_flash_erase_chip},
     {IOCTL_FLASH_CHECK_ADDR_IS_BLOCK_START, _ioctl_flash_check_addr_is_block_start},

@@ -83,7 +83,7 @@ typedef enum {
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(d100, _open, _close, _write, _read, _ioctl, _irq_handler);
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_D100_GET_COMPORT, __ioctl_get_comport},
     {IOCTL_D100_SET_IRQ_HANDLER, __ioctl_set_irq},
     {IOCTL_D100_GET_BAUDRATE, __ioctl_get_baudrate},
@@ -92,7 +92,7 @@ static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_DEVICE_POWER_ON, __ioctl_power_on},
     {IOCTL_DEVICE_POWER_OFF, __ioctl_power_off}
 };
-static write_cb_t write_cb_array[] = {
+const static write_cb_t write_cb_array[] = {
     {D100_MSGID_VERSION, __write_version},
     {D100_MSGID_RESET, __write_reset},
     {D100_MSGID_DELUSER, __write_del_a_user},

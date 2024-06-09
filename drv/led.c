@@ -56,7 +56,7 @@ DRIVER_DEFINED(led, led_open, led_close, NULL, NULL, led_ioctl, NULL);
 
 /* define led ioctl functions
  */
-static ioctl_cb_t ioctl_cb_array[] = {
+const static ioctl_cb_t ioctl_cb_array[] = {
     {IOCTL_LED_ON, _ioctl_led_turn_on},
     {IOCTL_LED_OFF, _ioctl_led_turn_off},
     {IOCTL_LED_TOGGLE_ONCE, _ioctl_led_toggle_once},
