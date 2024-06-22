@@ -165,6 +165,22 @@ void serial_transport_clear_transmitter(serial_transport_t self)
     serial_mac_clear_transmitter(self->handle);
 }
 
+void serial_transport_drop_transmitter_cache(serial_transport_t self)
+{
+    assert(self);
+    assert(self->handle);
+    _lock(self);
+    while(!list_empty_careful(&self->head)) {
+        node_t n = list_first_entry(&self->head, struct node, node);
+        list_del(&n->node);
+        if(self->cur_blocked_count) {
+            self->cur_blocked_count--;
+        }
+        __free(n);
+    }
+    _unlock(self);
+}
+
 void serial_transport_recv_byte(serial_transport_t self, uint8_t byte)
 {
     assert(self);
@@ -184,19 +200,19 @@ void serial_transport_poll(serial_transport_t self)
     assert(self);
     assert(self->handle);
     serial_mac_poll(self->handle);
+    _lock(self);
     if(!list_empty_careful(&self->head)) {
         node_t n = list_first_entry(&self->head, struct node, node);
         if(serial_mac_set_transmitter_cache(self->handle, n->pbuf, n->length, 
                 n->retrans_max_count, n->wait_ack_ticks) != SERIAL_MAC_EX_TRANS_BUSY) {
-            _lock(self);
             list_del(&n->node);
             if(self->cur_blocked_count) {
                 self->cur_blocked_count--;
             }
-            _unlock(self);
             __free(n);
         }
     }
+    _unlock(self);
 }
 
 void serial_transport_dmaorint_send_completed(serial_transport_t self)

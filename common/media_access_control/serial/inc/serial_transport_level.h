@@ -118,6 +118,14 @@ extern serial_transport_expection_t serial_transport_set_transmitter_cache(seria
 extern void serial_transport_clear_transmitter(serial_transport_t self);
 
 /**
+ * @brief Clear controller's transmitter cache.
+ * @param self The handle of the controller being clear transmitter.
+ * 
+ * @retval None
+ */
+extern void serial_transport_drop_transmitter_cache(serial_transport_t self);
+
+/**
  * @brief When recv a byte by serial hardware, serial_transport_recv_byte() API should be called once.
  * @note API serial_transport_recv_byte() should be regiter to serial hardware interrupt receive server function.
  * @param self The handle of controller.
