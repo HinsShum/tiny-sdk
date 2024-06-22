@@ -159,6 +159,22 @@ void radio_transport_clear_transmitter(radio_transport_t self)
     radio_mac_clear_transmitter(self->handle);
 }
 
+void radio_transport_drop_transmitter_cache(radio_transport_t self)
+{
+    assert(self);
+    assert(self->handle);
+    _lock(self);
+    while(!list_empty_careful(&self->head)) {
+        node_t n = list_first_entry(&self->head, struct node, node);
+        list_del(&n->node);
+        if(self->cur_blocked_count) {
+            self->cur_blocked_count--;
+        }
+        __free(n);
+    }
+    _unlock(self);
+}
+
 void radio_transport_event_post(radio_transport_t self, radio_mac_evt_t evt, bool protected)
 {
     assert(self);
@@ -171,18 +187,18 @@ void radio_transport_poll(radio_transport_t self)
     assert(self);
     assert(self->handle);
     radio_mac_poll(self->handle);
+    _lock(self);
     if(!list_empty_careful(&self->head)) {
         node_t n = list_first_entry(&self->head, struct node, node);
         if(radio_mac_set_transmitter_cache(self->handle, n->pbuf, n->length, n->retrans_max_count) != RADIO_MAC_EX_TRANS_BUSY) {
-            _lock(self);
             list_del(&n->node);
             if(self->cur_blocked_count) {
                 self->cur_blocked_count--;
             }
-            _unlock(self);
             __free(n);
         }
     }
+    _unlock(self);
 }
 
 void radio_transport_called_per_tick(radio_transport_t self)

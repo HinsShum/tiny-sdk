@@ -116,6 +116,14 @@ extern radio_transport_expection_t radio_transport_set_transmitter_cache(radio_t
 extern void radio_transport_clear_transmitter(radio_transport_t self);
 
 /**
+ * @brief Clear controller's transmitter cache.
+ * @param self The handle of the controller being clear transmitter.
+ * 
+ * @retval None
+ */
+extern void radio_transport_drop_transmitter_cache(radio_transport_t self);
+
+/**
  * @brief Post an event to the transport level controller.
  * @param self The handle of the controller.
  * @param evt An event to post.
