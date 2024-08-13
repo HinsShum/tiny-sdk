@@ -218,6 +218,22 @@ extern "C"
  */
 #define IOCTL_SI446X_SET_INTERRUPT_FLAG                     (IOCTL_USER_START + 0x15)
 
+/**
+ * @brief Get SI446x frequency
+ * @param Args is pointer of frequency value
+ * @retval If set success, it will return CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_GET_FREQUENCY                          (IOCTL_USER_START + 0x16)
+
+/**
+ * @brief Set SI446x frequency
+ * @param Args is pointer of frequency value
+ * @retval If set success, it will return CY_EOK, otherwise
+ *         return CY_ERROR.
+ */
+#define IOCTL_SI446X_SET_FREQUENCY                          (IOCTL_USER_START + 0x17)
+
 /*---------- type define ----------*/
 typedef enum {
     SI446X_GPIO_TYPE_UNDEFINE,
@@ -437,6 +453,10 @@ typedef struct {
         si446x_gpio_type_t gpio2;
         si446x_gpio_type_t gpio3;
     } gpios;
+    struct {
+        bool enable;
+        uint32_t frequency;
+    } frequency_converter;
 } si446x_configure_t;
 
 typedef enum {

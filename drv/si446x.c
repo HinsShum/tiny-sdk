@@ -466,6 +466,8 @@ static int32_t _ioctl_read_irq_pin(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_clear_interrupt(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_interrupt_flag(si446x_describe_t *pdesc, void *args);
 static int32_t _ioctl_set_interrupt_flag(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_get_frequency(si446x_describe_t *pdesc, void *args);
+static int32_t _ioctl_set_frequency(si446x_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(si446x, si446x_open, si446x_close, si446x_write, si446x_read, si446x_ioctl, si446x_irq_handler);
@@ -492,6 +494,8 @@ const static ioctl_cb_t _ioctl_cb_tables[] = {
     {IOCTL_SI446X_CLEAR_INTERRUPT, _ioctl_clear_interrupt},
     {IOCTL_SI446X_GET_INTERRUPT_FLAG, _ioctl_get_interrupt_flag},
     {IOCTL_SI446X_SET_INTERRUPT_FLAG, _ioctl_set_interrupt_flag},
+    {IOCTL_SI446X_GET_FREQUENCY, _ioctl_get_frequency},
+    {IOCTL_SI446X_SET_FREQUENCY, _ioctl_set_frequency},
 };
 
 /*---------- function ----------*/
@@ -824,6 +828,93 @@ static bool _receiver_configure(si446x_describe_t *pdesc)
     return retval;
 }
 
+static uint8_t __get_outdiv(uint8_t band)
+{
+    uint8_t outdiv = 0;
+
+    switch(band) {
+        case 0:
+            outdiv = 4;
+            break;
+        case 1:
+            outdiv = 6;
+            break;
+        case 2:
+            outdiv = 8;
+            break;
+        case 3:
+            outdiv = 12;
+            break;
+        case 4:
+            outdiv = 16;
+            break;
+        default:
+            outdiv = 24;
+            break;
+    }
+
+    return outdiv;
+}
+
+static bool __get_frequency(si446x_describe_t *pdesc, uint32_t *freq)
+{
+    bool retval = false;
+    uint8_t presc = 0, outdiv = 0;
+    uint8_t data[4] = {0};
+    uint32_t fc_frac = 0;
+    float n = 0;
+    float freq_xo = 30000000.0;
+
+    do {
+        if(pdesc->configure.frequency_converter.enable) {
+            *freq = pdesc->configure.frequency_converter.frequency;
+            retval = true;
+            break;
+        }
+        if(_get_property(pdesc, GRP_MODEM, MODEM_CLKGEN_BAND, data, 1) != true) {
+            break;
+        }
+        presc = (data[0] & BIT(3)) ? 2 : 4;
+        outdiv = __get_outdiv(data[0] & 0x07);
+        if(_get_property(pdesc, GRP_FREQ, FREQ_CONTROL_INTE, data, ARRAY_SIZE(data)) != true) {
+            break;
+        }
+        fc_frac = ((uint32_t)(data[1] & 0x0F) << 16) | ((uint32_t)data[2] << 8) | data[3];
+        n = (data[0] + (float)fc_frac / 524288.0) * ((presc * freq_xo) / outdiv);
+        *freq = (uint32_t)((n / 10000.0) + 0.5) * 10000;
+    } while(0);
+
+    return retval;
+}
+
+static bool __set_frequency(si446x_describe_t *pdesc)
+{
+    bool retval = false;
+    uint8_t presc = 0, outdiv = 0;
+    uint8_t data[4] = {0};
+    uint32_t fc_frac = 0;
+    float n = 0;
+    float freq_xo = 30000000.0;
+
+    if(_get_property(pdesc, GRP_MODEM, MODEM_CLKGEN_BAND, data, 1)) {
+        presc = (data[0] & BIT(3)) ? 2 : 4;
+        outdiv = __get_outdiv(data[0] & 0x07);
+        n = (float)pdesc->configure.frequency_converter.frequency / ((freq_xo * presc) / outdiv);
+        data[0] = (uint32_t)n - 1;
+        fc_frac = (uint32_t)((n - data[0]) * 524288);   /*<< 2^19 = 524288 */
+        data[1] = (fc_frac >> 16) & 0x0F;
+        data[2] = (fc_frac >> 8) & 0xFF;
+        data[3] = fc_frac & 0xFF;
+        retval = _set_property(pdesc, GRP_FREQ, FREQ_CONTROL_INTE, data, ARRAY_SIZE(data));
+        __get_frequency(pdesc, &fc_frac);
+    }
+    xlog_cont("%s(%s)Configure frequency to %.2fMHz %s\n", (retval ? COLOR_GREEN : COLOR_YELLOW), TAG,
+            (float)pdesc->configure.frequency_converter.frequency / 1000000,
+            (retval ? "Success" : "Failed"));
+
+    return retval;
+}
+
 static bool _reinitialize(si446x_describe_t *pdesc)
 {
     bool retval = false;
@@ -854,6 +945,12 @@ static bool _reinitialize(si446x_describe_t *pdesc)
         }
         if(retval != true) {
             break;
+        }
+        /* configure frequency */
+        if(pdesc->configure.frequency_converter.enable) {
+            if(__set_frequency(pdesc) != true) {
+                break;
+            }
         }
         /* configure gpios */
         if(pdesc->configure.gpios.gpio0 <= SI446X_GPIO_TYPE_BOUND) {
@@ -1750,6 +1847,37 @@ static int32_t _ioctl_set_interrupt_flag(si446x_describe_t *pdesc, void *args)
             }
         }
     }
+
+    return retval;
+}
+
+static int32_t _ioctl_get_frequency(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_E_WRONG_ARGS;
+
+    if(args) {
+        retval = (__get_frequency(pdesc, (uint32_t *)args) ? CY_EOK : CY_ERROR);
+    }
+
+    return retval;
+}
+
+static int32_t _ioctl_set_frequency(si446x_describe_t *pdesc, void *args)
+{
+    int32_t retval = CY_E_WRONG_ARGS;
+    uint32_t *freq = (uint32_t *)args;
+
+    do {
+        if(!args) {
+            break;
+        }
+        if(*freq < 850000000 || *freq > 1050000000) {
+            break;
+        }
+        pdesc->configure.frequency_converter.enable = true;
+        pdesc->configure.frequency_converter.frequency = *freq;
+        retval = (__set_frequency(pdesc) ? CY_EOK : CY_ERROR);
+    } while(0);
 
     return retval;
 }
