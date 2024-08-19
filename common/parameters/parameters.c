@@ -92,7 +92,7 @@ static bool _parameter_is_vailed(struct st_para_info *pinfo, uint32_t offset)
 
 bool parameters_init(struct st_para_info *pinfo)
 {
-    uint32_t offset = 0, current = 0;
+    uint32_t offset = 0, current = UINT32_MAX;
     uint32_t one = 0, two = 0;
     bool retval = false;
 
@@ -102,7 +102,7 @@ bool parameters_init(struct st_para_info *pinfo)
     for(offset = pinfo->start_address; offset < pinfo->end_address;
         offset += pinfo->para_size) {
         if(_parameter_is_vailed(pinfo, offset)) {
-            if(current) {
+            if(current != UINT32_MAX) {
                 pinfo->read(current, &one, sizeof(one));
                 pinfo->read(offset, &two, sizeof(two));
                 if(one > two) {
