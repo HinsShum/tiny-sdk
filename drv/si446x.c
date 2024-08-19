@@ -896,6 +896,7 @@ static bool __set_frequency(si446x_describe_t *pdesc)
     float n = 0;
     float freq_xo = 30000000.0;
 
+    _change_state(pdesc, STATE_READY);
     if(_get_property(pdesc, GRP_MODEM, MODEM_CLKGEN_BAND, data, 1)) {
         presc = (data[0] & BIT(3)) ? 2 : 4;
         outdiv = __get_outdiv(data[0] & 0x07);
