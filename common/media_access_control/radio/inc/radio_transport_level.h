@@ -50,6 +50,7 @@ struct radio_transport_ops {
     struct radio_mac_ops mac_ops;
     void (*lock)(void);
     void (*unlock)(void);
+    bool (*is_repeat)(const uint8_t *buf1, uint8_t buf1_length, const uint8_t *buf2, uint8_t buf2_length);
 };
 
 /*---------- variable prototype ----------*/

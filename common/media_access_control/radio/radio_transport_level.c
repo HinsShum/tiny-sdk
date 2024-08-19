@@ -40,6 +40,7 @@ struct node {
 struct transport_ops {
     void (*lock)(void);
     void (*unlock)(void);
+    bool (*is_repeat)(const uint8_t *buf1, uint8_t buf1_length, const uint8_t *buf2, uint8_t buf2_length);
 };
 
 struct transport {
@@ -70,6 +71,25 @@ static inline void _unlock(radio_transport_t self)
     }
 }
 
+static inline void _del_repeat(radio_transport_t self, node_t new_node)
+{
+    node_t pos = NULL, n = NULL;
+
+    _lock(self);
+    if(!list_empty_careful(&self->head) && self->ops.is_repeat) {
+        list_for_each_entry_safe(pos, n, struct node, &self->head, node) {
+            if(self->ops.is_repeat(pos->pbuf, pos->length, new_node->pbuf, new_node->length)) {
+                list_del(&pos->node);
+                if(self->cur_blocked_count) {
+                    self->cur_blocked_count--;
+                }
+                __free(pos);
+            }
+        }
+    }
+    _unlock(self);
+}
+
 radio_transport_t radio_transport_new(uint32_t recv_capacity, uint32_t trans_capacity,
         uint32_t max_blocked_count, transport_ops_t ops)
 {
@@ -86,6 +106,7 @@ radio_transport_t radio_transport_new(uint32_t recv_capacity, uint32_t trans_cap
         INIT_LIST_HEAD(&self->head);
         self->ops.lock = ops->lock;
         self->ops.unlock = ops->unlock;
+        self->ops.is_repeat = ops->is_repeat;
         self->handle = radio_mac_new(recv_capacity, trans_capacity, &ops->mac_ops);
         if(!self->handle) {
             __free(self);
@@ -142,6 +163,7 @@ radio_transport_expection_t radio_transport_set_transmitter_cache(radio_transpor
         memcpy(n->pbuf, pbuf, length);
         n->length = length;
         n->retrans_max_count = retrans_count;
+        _del_repeat(self, n);
         _lock(self);
         list_add_tail(&n->node, &self->head);
         self->cur_blocked_count++;
