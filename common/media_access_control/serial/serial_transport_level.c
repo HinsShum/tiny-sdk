@@ -135,7 +135,12 @@ serial_transport_expection_t serial_transport_set_transmitter_cache(serial_trans
     assert(self->handle);
     do {
         if(self->cur_blocked_count >= self->max_blocked_count) {
-            break;
+            if(!list_empty_careful(&self->head)) {
+                break;
+            }
+            _lock(self);
+            self->cur_blocked_count = 0;
+            _unlock(self);
         }
         alloc_length = length + sizeof(*n);
         n = __malloc(alloc_length);
