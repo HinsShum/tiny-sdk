@@ -70,16 +70,13 @@ static inline void _unlock(void)
 
 static void _remove_from_ready_list(timer_handle_t tcb)
 {
-    _lock();
     list_del(&tcb->node);
-    _unlock();
     tcb->ops.remove = NULL;
     tcb->ops.insert = _insert_to_active_list;
 }
 
 static void _remove_from_active_list(timer_handle_t tcb)
 {
-    _lock();
     /* update the first active tcb's remaining value */
     list_first_entry(&_timer_active_list, struct timer_tcb, node)->remaining = _timer_count;
     /* if tcb is not the last active tcb, update the next tcb's remaining value */
@@ -90,16 +87,13 @@ static void _remove_from_active_list(timer_handle_t tcb)
     list_del(&tcb->node);
     /* update timer count */
     _timer_count = list_first_entry(&_timer_active_list, struct timer_tcb, node)->remaining;
-    _unlock();
     tcb->ops.remove = NULL;
     tcb->ops.insert = _insert_to_ready_list;
 }
 
 static void _insert_to_ready_list(timer_handle_t tcb)
 {
-    _lock();
     list_add_tail(&tcb->node, &_timer_ready_list);
-    _unlock();
     tcb->ops.remove = _remove_from_ready_list;
     tcb->ops.insert = NULL;
 }
@@ -110,7 +104,6 @@ static void _insert_to_active_list(timer_handle_t tcb)
     uint32_t remaining_total = 0;
     bool insertion_point_found = false;
 
-    _lock();
     if(list_empty_careful(&_timer_active_list)) {
         list_add(&tcb->node, &_timer_active_list);
         tcb->remaining = tcb->period;
@@ -141,7 +134,6 @@ static void _insert_to_active_list(timer_handle_t tcb)
         /* update timer count */
         _timer_count = list_first_entry(&_timer_active_list, struct timer_tcb, node)->remaining;
     }
-    _unlock();
     tcb->ops.remove = _remove_from_active_list;
     tcb->ops.insert = NULL;
 }
@@ -182,7 +174,9 @@ void soft_timer_destroy(timer_handle_t tcb)
 {
     assert(tcb);
     if(tcb->ops.remove) {
+        _lock();
         tcb->ops.remove(tcb);
+        _unlock();
     }
     __free(tcb);
 }
@@ -190,10 +184,12 @@ void soft_timer_destroy(timer_handle_t tcb)
 void soft_timer_start(timer_handle_t tcb)
 {
     assert(tcb);
+    _lock();
     if(tcb->ops.remove) {
         tcb->ops.remove(tcb);
     }
     _insert_to_active_list(tcb);
+    _unlock();
 }
 
 void soft_timer_restart(timer_handle_t tcb)
@@ -205,7 +201,9 @@ void soft_timer_stop(timer_handle_t tcb)
 {
     assert(tcb);
     if(tcb->ops.remove) {
+        _lock();
         tcb->ops.remove(tcb);
+        _unlock();
     }
 }
 
@@ -213,11 +211,13 @@ void soft_timer_change_period(timer_handle_t tcb, uint32_t period)
 {
     assert(tcb);
     assert(period);
+    _lock();
     if(tcb->ops.remove) {
         tcb->ops.remove(tcb);
     }
     tcb->period = period;
     _insert_to_active_list(tcb);
+    _unlock();
 }
 
 void soft_timer_set_reload_mode(timer_handle_t tcb, soft_timer_mode_t mode)
@@ -276,13 +276,13 @@ void soft_timer_poll(void)
     while(list_empty_careful(&_timer_ready_list) != true) {
         _lock();
         tcb = list_first_entry(&_timer_ready_list, struct timer_tcb, node);
-        _unlock();
         /* remove from ready list */
         tcb->ops.remove(tcb);
         /* insert to active list */
         if(tcb->mode == SFTIM_MODE_REPEAT) {
             tcb->ops.insert(tcb);
         }
+        _unlock();
         if(tcb->ops.cb) {
             tcb->ops.cb(tcb);
         }
@@ -295,6 +295,7 @@ void soft_timer_tick(void)
 
     _timer_count--;
     if(_timer_count == 0 && list_empty_careful(&_timer_active_list) != true) {
+        _lock();
         tcb = list_first_entry(&_timer_active_list, struct timer_tcb, node);
         tcb->remaining = 0;
         list_for_each_entry_safe(tcb, next_tcb, struct timer_tcb, &_timer_active_list, node) {
@@ -314,5 +315,6 @@ void soft_timer_tick(void)
             _timer_count = tcb->remaining;
             break;
         }
+        _unlock();
     }
 }
