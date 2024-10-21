@@ -132,12 +132,16 @@ static bool _get_device_info(paj7620_describe_t *pdesc)
 {
     uint16_t partid = 0;
     uint8_t version = 0;
+    uint8_t try_counts = 0;
 
-    __select_bank0(pdesc);
-    __read_byte(pdesc, BANK0_REG_PARTID_LOW, (uint8_t *)&partid);
-    __read_byte(pdesc, BANK0_REG_PARTID_HIGH, (uint8_t *)&partid + 1);
-    __read_byte(pdesc, BANK0_REG_VERSION_ID, &version);
-    xlog_tag_info(TAG, "PartID: %04X, Version: %d\n", partid, version);
+    do {
+        __select_bank0(pdesc);
+        __read_byte(pdesc, BANK0_REG_PARTID_LOW, (uint8_t *)&partid);
+        __read_byte(pdesc, BANK0_REG_PARTID_HIGH, (uint8_t *)&partid + 1);
+        __read_byte(pdesc, BANK0_REG_VERSION_ID, &version);
+        __delay_us(500);
+    } while((partid != PAJ7620_PARTID) && (try_counts++ < 10));
+    xlog_tag_info(TAG, "PartID: %04X, Version: %d, try_count: %d\n", partid, version, try_counts);
 
     return (partid == PAJ7620_PARTID);
 }
