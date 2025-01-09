@@ -65,6 +65,7 @@ extern "C"
 
 /* buffer content print definition
  */
+#ifndef PRINT_BUFFER_CONTENT
 #define PRINT_BUFFER_CONTENT(color, tag, buf, length)   \
         do {                                            \
             if(!length) {                               \
@@ -76,6 +77,7 @@ extern "C"
             }                                           \
             xlog_cont("\b\n");                          \
         } while(0);
+#endif
 
 /*---------- type define ----------*/
 /*---------- variable prototype ----------*/
