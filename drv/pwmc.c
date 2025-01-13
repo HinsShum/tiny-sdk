@@ -49,6 +49,7 @@ static int32_t _ioctl_enable_channel(pwmc_describe_t *pdesc, void *args);
 static int32_t _ioctl_disable_channel(pwmc_describe_t *pdesc, void *args);
 static int32_t _ioctl_set_irq(pwmc_describe_t *pdesc, void *args);
 static int32_t _ioctl_get_duty_raw_max(pwmc_describe_t *pdesc, void *args);
+static int32_t _ioctl_set_duty_raw_max(pwmc_describe_t *pdesc, void *args);
 
 /*---------- variable ----------*/
 DRIVER_DEFINED(pwmc, pwmc_open, pwmc_close, NULL, NULL, pwmc_ioctl, pwmc_irq_handler);
@@ -65,7 +66,8 @@ const static struct protocol_callback ioctl_cbs[] = {
     {IOCTL_PWMC_ENABLE_CHANNEL, _ioctl_enable_channel},
     {IOCTL_PWMC_DISABLE_CHANNEL, _ioctl_disable_channel},
     {IOCTL_PWMC_SET_IRQ_HANDLER, _ioctl_set_irq},
-    {IOCTL_PWMC_GET_DUTY_RAW_MAX, _ioctl_get_duty_raw_max}
+    {IOCTL_PWMC_GET_DUTY_RAW_MAX, _ioctl_get_duty_raw_max},
+    {IOCTL_PWMC_SET_DUTY_RAW_MAX, _ioctl_set_duty_raw_max},
 };
 
 /*---------- function ----------*/
@@ -134,6 +136,9 @@ static int32_t _ioctl_get_freq(pwmc_describe_t *pdesc, void *args)
     uint32_t *freq = (uint32_t *)args;
 
     if(freq) {
+        if(pdesc->ops.update_frequency) {
+            pdesc->ops.update_frequency();
+        }
         *freq = pdesc->freq;
         err = CY_EOK;
     }
@@ -319,6 +324,26 @@ static int32_t _ioctl_get_duty_raw_max(pwmc_describe_t *pdesc, void *args)
             break;
         }
         *raw = pdesc->raw_max;
+        err = CY_EOK;
+    } while(0);
+
+    return err;
+}
+
+static int32_t _ioctl_set_duty_raw_max(pwmc_describe_t *pdesc, void *args)
+{
+    int32_t err = CY_E_WRONG_ARGS;
+    uint32_t *raw = (uint32_t *)args;
+
+    do {
+        if(!raw) {
+            break;
+        }
+        err = CY_E_POINT_NONE;
+        if(!pdesc->ops.update_raw_max) {
+            break;
+        }
+        pdesc->ops.update_raw_max(*raw);
         err = CY_EOK;
     } while(0);
 

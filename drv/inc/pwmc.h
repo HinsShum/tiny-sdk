@@ -48,6 +48,7 @@ extern "C"
 #define IOCTL_PWMC_DISABLE_CHANNEL                          (IOCTL_USER_START + 0x0A)
 #define IOCTL_PWMC_SET_IRQ_HANDLER                          (IOCTL_USER_START + 0x0B)
 #define IOCTL_PWMC_GET_DUTY_RAW_MAX                         (IOCTL_USER_START + 0x0C)
+#define IOCTL_PWMC_SET_DUTY_RAW_MAX                         (IOCTL_USER_START + 0x0D)
 
 /*---------- type define ----------*/
 typedef int32_t (*pwmc_irq_handler_fn)(uint32_t irq_handler, void *args, uint32_t len);
@@ -63,6 +64,8 @@ typedef struct {
         bool (*update_duty_raw)(uint32_t channel, uint32_t raw);
         uint32_t (*get_duty_raw)(uint32_t channel);
         bool (*channel_ctrl)(uint32_t channel, bool ctrl);
+        void (*update_frequency)(void);
+        void (*update_raw_max)(uint32_t max);
         pwmc_irq_handler_fn irq_handler;
     } ops;
 } pwmc_describe_t;
