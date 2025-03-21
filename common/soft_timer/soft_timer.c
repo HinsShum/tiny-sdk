@@ -275,7 +275,10 @@ void soft_timer_poll(void)
 
     while(list_empty_careful(&_timer_ready_list) != true) {
         _lock();
-        tcb = list_first_entry(&_timer_ready_list, struct timer_tcb, node);
+        if(NULL == (tcb = list_first_entry_or_null(&_timer_ready_list, struct timer_tcb, node))) {
+            _unlock();
+            break;
+        }
         /* remove from ready list */
         tcb->ops.remove(tcb);
         /* insert to active list */
@@ -296,24 +299,25 @@ void soft_timer_tick(void)
     _timer_count--;
     if(_timer_count == 0 && list_empty_careful(&_timer_active_list) != true) {
         _lock();
-        tcb = list_first_entry(&_timer_active_list, struct timer_tcb, node);
-        tcb->remaining = 0;
-        list_for_each_entry_safe(tcb, next_tcb, struct timer_tcb, &_timer_active_list, node) {
-            if(tcb->remaining == 0) {
-                /* When the current timer expires and is being processed in a systick interrupt,
-                 * a higher priority interrupt occurs and happens to execute soft_timer_start(),
-                 * soft_timer_restart() or soft_timer_change_period() to reset this timer it will
-                 * cause the remove callback pointer to be NULL.
-                 */
-                if(tcb->ops.remove) {
-                    tcb->ops.remove(tcb);
-                    tcb->ops.insert(tcb);
-                    continue;
+        if(NULL != (tcb = list_first_entry_or_null(&_timer_active_list, struct timer_tcb, node))) {
+            tcb->remaining = 0;
+            list_for_each_entry_safe(tcb, next_tcb, struct timer_tcb, &_timer_active_list, node) {
+                if(tcb->remaining == 0) {
+                    /* When the current timer expires and is being processed in a systick interrupt,
+                    * a higher priority interrupt occurs and happens to execute soft_timer_start(),
+                    * soft_timer_restart() or soft_timer_change_period() to reset this timer it will
+                    * cause the remove callback pointer to be NULL.
+                    */
+                    if(tcb->ops.remove) {
+                        tcb->ops.remove(tcb);
+                        tcb->ops.insert(tcb);
+                        continue;
+                    }
+                    break;
                 }
+                _timer_count = tcb->remaining;
                 break;
             }
-            _timer_count = tcb->remaining;
-            break;
         }
         _unlock();
     }
